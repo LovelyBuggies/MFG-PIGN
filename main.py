@@ -1,15 +1,16 @@
 import numpy as np
 import torch
-from loader import RingRoadLoader
-from model import MPNN
+from loader import RingRoad
+from model import PIGNO
+from loss import PINO_loss
 from utils import plot_3d
 
 
 if __name__ == "__main__":
     INPUT_DIM = 2
     OUTPUT_DIM = 2
-    N_HIDDEN = 4
-    HIDDEN_DIM = 32
+    N_HIDDEN = 0
+    HIDDEN_DIM = 1
     early_stop = 500
 
     if torch.cuda.is_available():
@@ -18,83 +19,54 @@ if __name__ == "__main__":
     else:
         DEVICE = torch.device("cpu")
 
-    rho = np.loadtxt("data/rho.csv", delimiter=",")
-    V = np.loadtxt("data/V.csv", delimiter=",")[:8, :8]
-    ring_data_loader = RingRoadLoader(rho, V)
-    X_train, y_train, X_test, y_test = ring_data_loader.train_test_split(ratio=0.7)
+    rho = np.loadtxt("data/rho.csv", delimiter=",")[None, :, :]
+    V = np.loadtxt("data/V.csv", delimiter=",")[None, :, :]
+    ring_road = RingRoad(rho, V)
 
     f_x_args = (INPUT_DIM, OUTPUT_DIM, N_HIDDEN, HIDDEN_DIM)
     f_x_kwargs = {
         "activation_type": "none",
         "last_activation_type": "none",
         "device": DEVICE,
+        "mean": np.array([rho.mean(), 0], dtype=np.float32),
+        "std": np.array([rho.std(), 1], dtype=np.float32),
     }
-    x = np.hstack([rho.reshape(-1, 1), V.reshape(-1, 1)])
-    f_x_kwargs["mean"] = np.array([x.mean(0)[0], 0], dtype=np.float32)
-    f_x_kwargs["std"] = np.array([x.std(0)[0], 1], dtype=np.float32)
-
     f_m_args = (INPUT_DIM, 1, N_HIDDEN, HIDDEN_DIM)
     f_m_kwargs = {
         "activation_type": "none",
         "last_activation_type": "none",
         "device": DEVICE,
-        "mean": np.array([x.mean(0)[0], x.mean(0)[1]], dtype=np.float32),
-        "std": np.array([x.std(0)[0], x.std(0)[1]], dtype=np.float32),
+        "mean": np.array([rho.mean(), V.mean()], dtype=np.float32),
+        "std": np.array([rho.std(), V.std()], dtype=np.float32),
     }
-
-    mpnn = MPNN(f_x_args, f_x_kwargs, f_m_args, f_m_kwargs, ring_data_loader.A)
+    pigno = PIGNO(
+        ring_road,
+        f_x_args,
+        f_x_kwargs,
+        f_m_args,
+        f_m_kwargs,
+    )
     optimizer_kwargs = {"lr": 0.001}
     optimizer = torch.optim.Adam(
-        [p for p in mpnn.parameters() if p.requires_grad is True], **optimizer_kwargs
+        [p for p in pigno.parameters() if p.requires_grad is True], **optimizer_kwargs
     )
     loss_fun = torch.nn.MSELoss()
 
-    # train
-    best_mse, best_it, best_pred, best_val = 100000, 0, None, None
-    for it in range(2000):
-        pred = torch.squeeze(mpnn(X_train))
-        loss = loss_fun(pred, torch.Tensor(y_train))
+    y = torch.Tensor(np.concatenate((ring_road.rho, ring_road.V[:, :, :-1]), axis=1))
+    y_T = torch.transpose(y, 1, 2)
+    for it in range(1, 501):
+        out = pigno(ring_road.rho_init, ring_road.V_terminal)
+        if it % 1000 == 0:
+            out = pigno.mpnn_helper(out)
+        loss = PINO_loss(
+            ring_road, out, y_T, ic_weight=0.7, f_weight=0.3, data_weight=0.0
+        )
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        val = torch.squeeze(mpnn(X_test))
-        loss_val = float(loss_fun(val, torch.Tensor(y_test)))
+        print(f"It: {it}, loss={float(loss)}")
 
-        print(
-            "it=",
-            it,
-            "loss_train=",
-            float(loss),
-            " loss_val=",
-            loss_val,
-        )
-        if loss_val < best_mse:
-            best_mse, best_it = loss_val, it
-            best_pred, best_val = pred, val
-        if it - best_it > early_stop:
-            break
-
-    # results
-    out = np.concatenate(
-        (
-            X_train[:1, :, :],
-            best_pred.cpu().detach().numpy(),
-            X_test[:1, :, :],
-            best_val.cpu().detach().numpy(),
-        ),
-        axis=0,
-    )
-    label = np.concatenate(
-        (
-            X_train[:1, :, :],
-            y_train,
-            X_test[:1, :, :],
-            y_test,
-        ),
-        axis=0,
-    )
-
-    plot_3d(8, 8, out[:, :, 0], "pre")
-    plot_3d(8, 8, label[:, :, 0], "pre")
-    plot_3d(8, 8, out[:, :, 1], "pre")
-    plot_3d(8, 8, label[:, :, 1], "pre")
+    plot_3d(8, 8, out.detach().numpy()[0, :, :8], None)
+    plot_3d(8, 8, out.detach().numpy()[0, :, 8:16], None)
+    plot_3d(8, 8, y_T.detach().numpy()[0, :, :8], None)
+    plot_3d(8, 8, y_T.detach().numpy()[0, :, 8:16], None)
