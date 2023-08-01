@@ -25,19 +25,11 @@ if __name__ == "__main__":
     rho_inits = np.repeat(
         (ring_data_loader.init_rho[:, None]), ring_data_loader.T, axis=1
     )
-    V_terminals = np.repeat(
-        (ring_data_loader.terminal_V[:, None]), ring_data_loader.T + 1, axis=1
-    )
 
     rho = np.zeros(rho_label.shape, dtype=np.float32)
-    transitions = ring_data_loader.get_transition_matrix()
     rho[:, 0] = ring_data_loader.init_rho
-    prev_rho_t = rho[:, 0]
-    # rho[:, 1] = ring_data_loader.rho[:, 1]
-    # prev_rho_t = rho[:, 1]
+    transitions = ring_data_loader.get_transition_matrix()
     for t in range(1, ring_data_loader.T):
-        curr_rho_t = np.dot(transitions[t - 1], prev_rho_t)
-        rho[:, t] = curr_rho_t
-        prev_rho_t = curr_rho_t
+        rho[:, t] = np.dot(transitions[t - 1], rho_inits[:, t])
 
     plot_3d(8, 8, rho, "pre")

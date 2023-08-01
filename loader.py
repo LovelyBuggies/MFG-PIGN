@@ -18,12 +18,14 @@ class RingRoadLoader:
 
     def get_transition_matrix(self):
         transitions = list()
+        P_prev = np.eye(self.N, dtype=np.float32)
         for t in range(self.T):
             P = np.zeros((self.N, self.N), dtype=np.float32)
             for i in range(self.N):
                 P[i, i - 1] = (self.delta_t / self.delta_x) * self.u[i - 1, t - 1]
                 P[i, i] = (self.delta_t / self.delta_x) * (1 - self.u[i, t - 1])
 
-            transitions.append(P)
+            P_prev = np.dot(P, P_prev)
+            transitions.append(P_prev)
 
         return transitions
