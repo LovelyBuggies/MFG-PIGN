@@ -67,14 +67,15 @@ class PIGN(nn.Module):
         self.f_x = MLP(f_x_args, f_x_kwargs)
         self.A = A
 
-    def forward(self, x, message=None):
-        rho = torch.from_numpy(x).to(self.f_x.device)
-        x_m = torch.from_numpy(message).to(
+    def forward(self, x, messages=None):
+        rhos = torch.from_numpy(x).to(self.f_x.device)
+        x_m = torch.from_numpy(messages).to(
             self.f_m.device
-        )  # x_m: (T, N, N, n_features)
-        A = torch.from_numpy(self.A).to(self.f_j.device)
-        x_j = self.f_m(x_m)[:, :, :, 0] * A[None, :, :]  # x_j: (T, N, N)
+        )  # x_m: (n_samples, T, N, N, n_features)
+        x_j = self.f_m(x_m)[:, :, :, :, 0]  # x_j: (n_samples, T, N, N)
         message_j = self.f_j(x_j)
-        x_x = torch.concat((rho[:, :, None], message_j), dim=-1)  # x_x: (T, N, 2)
-        pred = self.f_x(x_x)[:, :, 0]
-        return pred
+        x_x = torch.concat(
+            (rhos[:, :, :, None], message_j), dim=-1
+        )  # x_x: (n_samples, T, N, 2)
+        preds = self.f_x(x_x)[:, :, :, 0]
+        return preds

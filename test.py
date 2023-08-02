@@ -2,26 +2,31 @@ import numpy as np
 from loader import RingRoadLoader
 from utils import plot_3d
 
-if __name__ == "__main__":
-    rho_label = np.loadtxt("data/rho.csv", delimiter=",", dtype=np.float32)
-    u_label = np.loadtxt("data/u.csv", delimiter=",", dtype=np.float32)
-    V_label = np.loadtxt("data/V.csv", delimiter=",", dtype=np.float32)
-    ring_data_loader = RingRoadLoader(rho_label, u_label, V_label)
-    rho_inits = np.repeat(
-        (ring_data_loader.init_rho[:, None]), ring_data_loader.T, axis=1
+
+def all_transition_tester(
+    ring_loader, all_transitions, all_cumulative_transitions, wanna_check=0
+):
+    plot_3d(8, 8, ring_loader.rhos[wanna_check], "pre")
+    rhos_1 = np.zeros(
+        (ring_loader.n_samples, ring_loader.N, ring_loader.T), dtype=np.float32
     )
-    transitions, cumulative_transitions = ring_data_loader.get_transition_matrix()
+    for sample_i in range(ring_loader.n_samples):
+        for t in range(ring_loader.T):
+            rhos_1[sample_i, :, t] = np.dot(
+                all_cumulative_transitions[sample_i][t],
+                ring_loader.init_rhos[sample_i, :],
+            )
 
-    rho = np.zeros((ring_data_loader.N, ring_data_loader.T), dtype=np.float32)
-    for t in range(ring_data_loader.T):
-        rho[:, t] = np.dot(cumulative_transitions[t], rho_inits[:, t])
-    plot_3d(8, 8, rho, "pre")
+    plot_3d(8, 8, rhos_1[wanna_check], "pre")
 
-    rho = np.zeros((ring_data_loader.N, ring_data_loader.T), dtype=np.float32)
-    rho[:, 0] = rho_inits[:, 0]
-    prev_rho_t = rho[:, 0]
-    for t in range(1, ring_data_loader.T):
-        rho[:, t] = np.dot(transitions[t], prev_rho_t)
-        prev_rho_t = rho[:, t]
+    rhos_2 = np.zeros(
+        (ring_loader.n_samples, ring_loader.N, ring_loader.T), dtype=np.float32
+    )
+    for sample_i in range(ring_loader.n_samples):
+        rhos_2[sample_i, :, 0] = ring_loader.init_rhos[sample_i, :]
+        prev_rho_t = rhos_2[sample_i, :, 0]
+        for t in range(1, ring_loader.T):
+            rhos_2[sample_i, :, t] = np.dot(all_transitions[sample_i][t], prev_rho_t)
+            prev_rho_t = rhos_2[sample_i, :, t]
 
-    plot_3d(8, 8, rho, "pre")
+    plot_3d(8, 8, rhos_2[wanna_check], "pre")
