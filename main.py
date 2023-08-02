@@ -1,7 +1,8 @@
 import numpy as np
 import torch
 from loader import RingRoadLoader
-from model import MPNN
+from model import PIGN
+from loss import supervised_loss, transition_loss
 from utils import plot_3d
 
 
@@ -17,84 +18,71 @@ if __name__ == "__main__":
     u_label = np.loadtxt("data/u.csv", delimiter=",", dtype=np.float32)
     V_label = np.loadtxt("data/V.csv", delimiter=",", dtype=np.float32)
     ring_data_loader = RingRoadLoader(rho_label, u_label, V_label)
-    rho_inits = np.repeat(
-        (ring_data_loader.init_rho[:, None]), ring_data_loader.T, axis=1
-    )
 
-    """Get transitions"""
-    transitions, cumulative_transitions = ring_data_loader.get_transition_matrix()
-
-    """Test unit"""
-    # rho = np.zeros(rho_label.shape, dtype=np.float32)
-    # for t in range(ring_data_loader.T):
-    #     rho[:, t] = np.dot(cumulative_transitions[t], rho_inits[:, t])
-    # plot_3d(8, 8, rho, "pre")
-    #
-    # rho = np.zeros(rho_label.shape, dtype=np.float32)
-    # rho[:, 0] = rho_inits[:, 0]
-    # prev_rho_t = rho[:, 0]
-    # for t in range(1, ring_data_loader.T):
-    #     rho[:, t] = np.dot(transitions[t], prev_rho_t)
-    #     prev_rho_t = rho[:, t]
-    #
-    # plot_3d(8, 8, rho, "pre")
-
-    """Train model"""
+    """Hyper-params"""
     f_x_args = (2, 1, 3, 32)
     f_x_kwargs = {
         "activation_type": "none",
         "last_activation_type": "none",
         "device": DEVICE,
     }
-    f_m_args = (3, 1, 3, 32)
+    f_m_args = (1, 1, 3, 32)
     f_m_kwargs = {
         "activation_type": "none",
         "last_activation_type": "none",
         "device": DEVICE,
     }
-    f_new_args = (ring_data_loader.N, 1, 3, 32)
-    f_new_kwargs = {
+    f_j_args = (ring_data_loader.N, 1, 3, 32)
+    f_j_kwargs = {
         "activation_type": "none",
         "last_activation_type": "none",
         "device": DEVICE,
     }
-    mpnn = MPNN(
-        f_x_args,
-        f_x_kwargs,
+    pign = PIGN(
         f_m_args,
         f_m_kwargs,
-        f_new_args,
-        f_new_kwargs,
+        f_j_args,
+        f_j_kwargs,
+        f_x_args,
+        f_x_kwargs,
         ring_data_loader.A,
     )
     optimizer_kwargs = {"lr": 0.001}
     optimizer = torch.optim.Adam(
-        [p for p in mpnn.parameters() if p.requires_grad is True], **optimizer_kwargs
+        [p for p in pign.parameters() if p.requires_grad is True], **optimizer_kwargs
     )
     loss_func = torch.nn.MSELoss()
+
+    """Params"""
+    transitions, cumulative_transitions = ring_data_loader.get_transition_matrix()
+    x_pign = np.repeat((ring_data_loader.init_rho[:, None]), ring_data_loader.T, axis=1)
+    x_pign = np.transpose(x_pign, (1, 0))
+    message = np.zeros(
+        (ring_data_loader.T, ring_data_loader.N, ring_data_loader.N, 1),
+        dtype=np.float32,
+    )
+    for t in range(ring_data_loader.T):
+        message[t, :, :, 0] = cumulative_transitions[t]
+
+    """Train"""
     for it in range(500):
-        pred = mpnn(
-            np.transpose(rho_inits, (1, 0)), cumulative_transitions
-        )  # forward is (T, X) pred
-        loss = mpnn.transition_loss(
+        # forward input as (T, X)
+        pred = pign(x_pign, message=message)
+        loss = transition_loss(
             torch.transpose(pred, 1, 0),
             transitions,
             ring_data_loader.init_rho,
             loss_func,
         )
-        # loss = mpnn.supervised_loss(
-        #     torch.transpose(pred, 1, 0), torch.from_numpy(rho_label), loss_func
+        # loss = supervised_loss(
+        #     torch.transpose(pred, 1, 0),
+        #     torch.from_numpy(rho_label),
+        #     loss_func,
         # )
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         print("it=", it, "loss=", float(loss))
 
-    pred = (
-        torch.transpose(
-            mpnn(np.transpose(rho_inits, (1, 0)), cumulative_transitions), 1, 0
-        )
-        .detach()
-        .numpy()
-    )
-    plot_3d(8, 8, pred, "pre")
+    final_pred = torch.transpose(pred, 1, 0)
+    plot_3d(8, 8, final_pred.detach().numpy(), r"$\rho$")
