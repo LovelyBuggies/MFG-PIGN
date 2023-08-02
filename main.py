@@ -29,6 +29,15 @@ if __name__ == "__main__":
     # for t in range(ring_data_loader.T):
     #     rho[:, t] = np.dot(cumulative_transitions[t], rho_inits[:, t])
     # plot_3d(8, 8, rho, "pre")
+    #
+    # rho = np.zeros(rho_label.shape, dtype=np.float32)
+    # rho[:, 0] = rho_inits[:, 0]
+    # prev_rho_t = rho[:, 0]
+    # for t in range(1, ring_data_loader.T):
+    #     rho[:, t] = np.dot(transitions[t], prev_rho_t)
+    #     prev_rho_t = rho[:, t]
+    #
+    # plot_3d(8, 8, rho, "pre")
 
     """Train model"""
     f_x_args = (2, 1, 3, 32)
@@ -67,10 +76,15 @@ if __name__ == "__main__":
         pred = mpnn(
             np.transpose(rho_inits, (1, 0)), cumulative_transitions
         )  # forward is (T, X) pred
-        # loss = mpnn.transition_loss(torch.transpose(pred, 1, 0), transitions, loss_func)
-        loss = mpnn.supervised_loss(
-            torch.transpose(pred, 1, 0), torch.from_numpy(rho_label), loss_func
+        loss = mpnn.transition_loss(
+            torch.transpose(pred, 1, 0),
+            transitions,
+            ring_data_loader.init_rho,
+            loss_func,
         )
+        # loss = mpnn.supervised_loss(
+        #     torch.transpose(pred, 1, 0), torch.from_numpy(rho_label), loss_func
+        # )
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()

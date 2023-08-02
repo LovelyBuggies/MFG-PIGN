@@ -125,22 +125,21 @@ class MPNN(nn.Module):
         pred = self.f_x(x_x)[:, :, 0]
         return pred
 
-    def transition_loss(self, pred, transitions, loss_func):
+    def transition_loss(self, pred, transitions, init_rho, loss_func):
         N, T = pred.shape
-        rho = pred
-        loss = loss_func(
-            rho[:, 0], rho[:, 0] * torch.from_numpy(transitions[0]).float()
+        loss_ic = loss_func(
+            torch.matmul(torch.from_numpy(transitions[0]).float(), pred[:, 0]),
+            torch.from_numpy(init_rho),
         )
+        loss_physics = 0.0
         for t in range(1, T):
-            loss += loss_func(
-                torch.matmul(torch.from_numpy(transitions[t]).float(), rho[:, t - 1]),
-                rho[:, t],
+            loss_physics += loss_func(
+                torch.matmul(torch.from_numpy(transitions[t]).float(), pred[:, t - 1]),
+                pred[:, t],
             )
 
-        return loss
+        return loss_ic * 0.6 + loss_physics * 0.4
 
     def supervised_loss(self, pred, rho_label, loss_func):
-        N, T = pred.shape
-        rho = pred
         loss = loss_func(pred, rho_label)
         return loss
