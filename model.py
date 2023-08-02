@@ -47,7 +47,7 @@ def get_fully_connected_layer(
     std=1,
 ):
     modules = [
-        Normalization(mean, std, device),
+        # Normalization(mean, std, device),
         nn.Linear(input_dim, hidden_dim, device=device),
     ]
     activation = instantiate_activation_function(activation_type)
@@ -87,37 +87,60 @@ class MLP(nn.Module):
 
 
 class MPNN(nn.Module):
-    def __init__(self, f_x_args, f_x_kwargs, f_m_args, f_m_kwargs, A):
+    def __init__(
+        self, f_x_args, f_x_kwargs, f_m_args, f_m_kwargs, f_new_args, f_new_kwargs, A
+    ):
         super().__init__()
         self.f_x = MLP(f_x_args, f_x_kwargs)
         self.f_m = MLP(f_m_args, f_m_kwargs)
+        self.f_new = MLP(f_new_args, f_new_kwargs)
         self.A = A
 
-    def forward(self, x):
-        # x is of shape(batch, N, F)
-        x = np.float32(x)
+    def forward(self, x, cumulative_transitions):
         A = np.float32(self.A)
-        N = x.shape[1]
-        rho = x[:, :, 0]
-        V = x[:, :, 1]
-        rho_i = np.repeat(rho[:, np.newaxis, :], N, axis=1)
-        rho_j = np.repeat(rho[:, :, np.newaxis], N, axis=2)
-        V_i = np.repeat(V[:, np.newaxis, :], N, axis=1)
-        V_j = np.repeat(V[:, :, np.newaxis], N, axis=2)
+        N, T = x.shape
+        rho = torch.from_numpy(x).to(self.f_x.device).float()
+        rho_i = np.repeat(rho[:, None, :], N, axis=1)
+        rho_j = np.repeat(rho[:, :, None], N, axis=2)
+        rho_ij = (rho_i + rho_j) / 2
 
-        # convert to torch
-        message = np.concatenate(
-            [
-                (rho_i + rho_j)[:, :, :, np.newaxis],
-                (V_i + V_j)[:, :, :, np.newaxis],
-            ],
-            axis=-1,
+        # message
+        message = np.zeros((T, N, N), dtype=np.float32)
+        for t in range(T):
+            message[t, :, :] = cumulative_transitions[t]
+
+        message = torch.concat(
+            (
+                torch.from_numpy(message[:, :, :, None]),
+                rho_i[:, :, :, None],
+                rho_j[:, :, :, None],
+            ),
+            dim=-1,
         )
-        torch_x = torch.from_numpy(message)
+        x_m = message.to(self.f_m.device)
         A = torch.from_numpy(A).to(self.f_m.device)
-        message_embed = self.f_m(torch_x.to(self.f_m.device))
-        message_sum = torch.sum(message_embed[:, :, :, 0] * A[None, :, :], 2)
-        rho = torch.Tensor(rho)
-        torch_x = torch.concat((rho[:, :, None], message_sum[:, :, None]), axis=-1)
-        dot_rho_i = self.f_x(torch_x)
-        return dot_rho_i
+        x_new = self.f_m(x_m)[:, :, :, 0] * A[None, :, :]
+        message_new = self.f_new(x_new)
+        x_x = torch.concat((rho[:, :, None], message_new), dim=-1)
+        pred = self.f_x(x_x)[:, :, 0]
+        return pred
+
+    def transition_loss(self, pred, transitions, loss_func):
+        N, T = pred.shape
+        rho = pred
+        loss = loss_func(
+            rho[:, 0], rho[:, 0] * torch.from_numpy(transitions[0]).float()
+        )
+        for t in range(1, T):
+            loss += loss_func(
+                torch.matmul(torch.from_numpy(transitions[t]).float(), rho[:, t - 1]),
+                rho[:, t],
+            )
+
+        return loss
+
+    def supervised_loss(self, pred, rho_label, loss_func):
+        N, T = pred.shape
+        rho = pred
+        loss = loss_func(pred, rho_label)
+        return loss
