@@ -82,5 +82,5 @@ class PIGN(nn.Module):
         x_x = torch.concat(
             (rhos[:, :, :, None], message_j), dim=-1
         )  # x_x: (n_samples, T, N, 2)
-        preds = self.f_x(x_x)[:, :, :, 0]
-        return preds
+        outs = self.f_x(x_x)[:, :, :, 0]
+        return outs

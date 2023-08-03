@@ -53,8 +53,10 @@ if __name__ == "__main__":
         ring_loader, all_transitions, all_cumulative_transitions, check_id
     )
 
-    x_model = np.repeat((ring_loader.init_rhos[:, :, None]), ring_loader.T, axis=-1)
-    x_model = np.transpose(x_model, (0, 2, 1))
+    init_rho_copies = np.repeat(
+        (ring_loader.init_rhos[:, :, None]), ring_loader.T, axis=-1
+    )
+    model_input = np.transpose(init_rho_copies, (0, 2, 1))
     messages = np.zeros(
         (ring_loader.n_samples, ring_loader.T, ring_loader.N, ring_loader.N, 1),
         dtype=np.float32,
@@ -66,14 +68,15 @@ if __name__ == "__main__":
     """Train"""
     for it in range(config["train"]["epochs"]):
         # forward input as (T, X)
-        preds = model(x_model, messages=messages)
+        model_output = model(model_input, messages=messages)
+        preds = torch.transpose(model_output, 2, 1)
         # loss = supervised_loss(
-        #     torch.transpose(preds, 2, 1),
+        #     preds,
         #     torch.from_numpy(rho_labels),
         #     loss_kwargs,
         # )
         loss = transition_loss(
-            torch.transpose(preds, 2, 1),
+            preds,
             all_transitions,
             ring_loader.init_rhos,
             loss_kwargs,
@@ -83,5 +86,4 @@ if __name__ == "__main__":
         optimizer.step()
         print("it=", it, "loss=", float(loss))
 
-    final_preds = torch.transpose(preds, 2, 1)
-    plot_3d(8, 8, final_preds[check_id].detach().numpy(), r"$\rho$")
+    plot_3d(8, 8, preds[check_id].detach().numpy(), r"$\rho$")
