@@ -1,100 +1,105 @@
+from argparse import ArgumentParser
+import yaml
 import numpy as np
+import scipy.io
 import torch
-from loader import RingRoadLoader
-from model import MPNN
-from utils import plot_3d
+from src.loader import RingRoadLoader
+from src.model import PIGN
+from src.loss import supervised_loss, transition_loss
+from src.utils import plot_3d, get_args_kwargs
+from src.test import all_transition_tester
 
 
-if __name__ == "__main__":
-    INPUT_DIM = 2
-    OUTPUT_DIM = 2
-    N_HIDDEN = 4
-    HIDDEN_DIM = 32
-    early_stop = 500
-
-    if torch.cuda.is_available():
-        DEVICE = torch.device("cuda:0")
-        torch.set_default_tensor_type("torch.cuda.FloatTensor")
-    else:
-        DEVICE = torch.device("cpu")
-
-    rho = np.loadtxt("data/rho.csv", delimiter=",")
-    V = np.loadtxt("data/V.csv", delimiter=",")[:8, :8]
-    ring_data_loader = RingRoadLoader(rho, V)
-    X_train, y_train, X_test, y_test = ring_data_loader.train_test_split(ratio=0.7)
-
-    f_x_args = (INPUT_DIM, OUTPUT_DIM, N_HIDDEN, HIDDEN_DIM)
-    f_x_kwargs = {
-        "activation_type": "none",
-        "last_activation_type": "none",
-        "device": DEVICE,
-    }
-    x = np.hstack([rho.reshape(-1, 1), V.reshape(-1, 1)])
-    f_x_kwargs["mean"] = np.array([x.mean(0)[0], 0], dtype=np.float32)
-    f_x_kwargs["std"] = np.array([x.std(0)[0], 1], dtype=np.float32)
-
-    f_m_args = (INPUT_DIM, 1, N_HIDDEN, HIDDEN_DIM)
-    f_m_kwargs = {
-        "activation_type": "none",
-        "last_activation_type": "none",
-        "device": DEVICE,
-        "mean": np.array([x.mean(0)[0], x.mean(0)[1]], dtype=np.float32),
-        "std": np.array([x.std(0)[0], x.std(0)[1]], dtype=np.float32),
-    }
-
-    mpnn = MPNN(f_x_args, f_x_kwargs, f_m_args, f_m_kwargs, ring_data_loader.A)
-    optimizer_kwargs = {"lr": 0.001}
+def runner(ring_loader, args, config, test=True):
+    model = PIGN(*args)
+    optimizer_kwargs = {"lr": config["train"]["lr"]}
     optimizer = torch.optim.Adam(
-        [p for p in mpnn.parameters() if p.requires_grad is True], **optimizer_kwargs
+        [p for p in model.parameters() if p.requires_grad is True], **optimizer_kwargs
     )
-    loss_fun = torch.nn.MSELoss()
+    loss_kwargs = {
+        "func": torch.nn.MSELoss(),
+        "w_ic": config["train"]["w_ic"],
+        "w_physics": config["train"]["w_physics"],
+    }
 
-    # train
-    best_mse, best_it, best_pred, best_val = 100000, 0, None, None
-    for it in range(2000):
-        pred = torch.squeeze(mpnn(X_train))
-        loss = loss_fun(pred, torch.Tensor(y_train))
+    """Params"""
+    all_transitions, all_cum_transitions = ring_loader.get_transition_matrix()
+    if test:
+        all_transition_tester(
+            ring_loader, all_transitions, all_cum_transitions, check_id
+        )
+
+    init_rho_copies = np.repeat(
+        (ring_loader.init_rhos[:, :, None]), ring_loader.T, axis=-1
+    )
+    model_input = np.transpose(init_rho_copies, (0, 2, 1))
+    messages = np.zeros(
+        (ring_loader.n_samples, ring_loader.T, ring_loader.N, ring_loader.N, 1),
+        dtype=np.float32,
+    )
+    for sample_i in range(ring_loader.n_samples):
+        for t in range(ring_loader.T):
+            messages[sample_i, t, :, :, 0] = all_cum_transitions[sample_i][t]
+
+    """Train"""
+    for it in range(config["train"]["epochs"]):
+        # forward input as (T, X)
+        model_output = model(model_input, messages=messages)
+        preds = torch.transpose(model_output, 2, 1)
+        loss = 0 * supervised_loss(
+            preds,
+            torch.from_numpy(rho_labels),
+            loss_kwargs,
+        ) + 1 * transition_loss(
+            preds,
+            all_transitions,
+            ring_loader.init_rhos,
+            loss_kwargs,
+        )
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        val = torch.squeeze(mpnn(X_test))
-        loss_val = float(loss_fun(val, torch.Tensor(y_test)))
+        print("it=", it, "loss=", float(loss))
 
-        print(
-            "it=",
-            it,
-            "loss_train=",
-            float(loss),
-            " loss_val=",
-            loss_val,
-        )
-        if loss_val < best_mse:
-            best_mse, best_it = loss_val, it
-            best_pred, best_val = pred, val
-        if it - best_it > early_stop:
-            break
+    plot_3d(8, 8, ring_loader.rhos[check_id], f"truth-{check_id}")
+    plot_3d(8, 8, preds[check_id].detach().numpy(), f"pred-{check_id}")
 
-    # results
-    out = np.concatenate(
-        (
-            X_train[:1, :, :],
-            best_pred.cpu().detach().numpy(),
-            X_test[:1, :, :],
-            best_val.cpu().detach().numpy(),
-        ),
-        axis=0,
+
+if __name__ == "__main__":
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    parser = ArgumentParser(description="Basic paser")
+    parser.add_argument(
+        "--config_path", type=str, help="Path to the configuration file"
     )
-    label = np.concatenate(
-        (
-            X_train[:1, :, :],
-            y_train,
-            X_test[:1, :, :],
-            y_test,
-        ),
-        axis=0,
+    args = parser.parse_args()
+    with open(args.config_path, "r") as stream:
+        config = yaml.load(stream, yaml.FullLoader)
+
+    """Loader"""
+    mat_file_path = config["data"]["file_path"]
+    sample_num = config["data"]["sample_num"]
+    check_id = config["data"]["check_id"]
+    rho_labels = scipy.io.loadmat(mat_file_path)["rhos"]
+    u_labels = scipy.io.loadmat(mat_file_path)["us"]
+    V_labels = scipy.io.loadmat(mat_file_path)["Vs"]
+    rho_labels = np.array(rho_labels, dtype=np.float32)[:sample_num, :, :]
+    u_labels = np.array(u_labels, dtype=np.float32)[:sample_num, :, :]
+    V_labels = np.array(V_labels, dtype=np.float32)[:sample_num, :, :]
+    ring_loader = RingRoadLoader(rho_labels, u_labels, V_labels)
+
+    """Hyper-params"""
+    f_channel_args, f_channel_kwargs = get_args_kwargs(
+        config["model"]["f_channel"], device
+    )
+    f_sum_args, f_sum_kwargs = get_args_kwargs(config["model"]["f_sum"], device)
+    f_x_args, f_x_kwargs = get_args_kwargs(config["model"]["f_x"], device)
+    args = (
+        f_channel_args,
+        f_channel_kwargs,
+        f_sum_args,
+        f_sum_kwargs,
+        f_x_args,
+        f_x_kwargs,
     )
 
-    plot_3d(8, 8, out[:, :, 0], "pre")
-    plot_3d(8, 8, label[:, :, 0], "pre")
-    plot_3d(8, 8, out[:, :, 1], "pre")
-    plot_3d(8, 8, label[:, :, 1], "pre")
+    runner(ring_loader, args, config, test=True)

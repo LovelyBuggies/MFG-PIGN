@@ -4,14 +4,14 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 
-def plot_3d(n_x, n_t, rho, ax_name, fig_name=None):
+def plot_3d(n_x, n_t, matrx, ax_name, fig_name=None):
     fig = plt.figure(figsize=(8, 8))
     ax = fig.gca(projection="3d")
     x = np.linspace(0, 1, n_x)
     t = np.linspace(0, 1, n_t)
     t_mesh, x_mesh = np.meshgrid(t, x)
     surf = ax.plot_surface(
-        x_mesh, t_mesh, rho, cmap=cm.jet, linewidth=0, antialiased=False
+        x_mesh, t_mesh, matrx, cmap=cm.jet, linewidth=0, antialiased=False
     )
     ax.grid(False)
     ax.tick_params(axis="both", which="major", labelsize=18, pad=10)
@@ -37,3 +37,21 @@ def plot_3d(n_x, n_t, rho, ax_name, fig_name=None):
         plt.show()
     else:
         plt.savefig(fig_name, bbox_inches="tight")
+
+
+def get_args_kwargs(f_config, device):
+    f_args = (
+        f_config["input_dim"],
+        f_config["output_dim"],
+        f_config["hidden_num"] - 2,
+        f_config["fc_dim"],
+    )
+    f_kwargs = {
+        "activation_type": f_config["activation_type"],
+        "last_activation_type": f_config["last_activation_type"],
+        "device": device,
+    }
+    if f_config["hidden_num"] < 2:
+        raise ValueError("Cannot have 'hidden_num' < 2")
+
+    return f_args, f_kwargs
