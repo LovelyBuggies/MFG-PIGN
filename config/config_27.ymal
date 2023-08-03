@@ -1,0 +1,35 @@
+data:
+  file_path: "data/data-27.mat"
+  sample_num: 26
+  check_id: 0
+
+model:
+  f_x:
+    input_dim: 2
+    output_dim: 1
+    hidden_num: 10
+    fc_dim: 32
+    activation_type: "none"
+    last_activation_type: "none"
+
+  f_channel:
+    input_dim: 1
+    output_dim: 1
+    hidden_num: 10
+    fc_dim: 32
+    activation_type: "none"
+    last_activation_type: "none"
+
+  f_sum:
+    input_dim: 8
+    output_dim: 1
+    hidden_num: 10
+    fc_dim: 32
+    activation_type: "none"
+    last_activation_type: "none"
+
+train:
+  epochs: 500
+  lr: 0.001
+  w_ic: 0.6
+  w_physics: 0.4

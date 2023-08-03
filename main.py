@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import yaml
 import numpy as np
 import scipy.io
@@ -66,14 +67,18 @@ def runner(ring_loader, args, config, test=True):
 
 if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    with open("config.ymal", "r") as stream:
+    parser = ArgumentParser(description="Basic paser")
+    parser.add_argument(
+        "--config_path", type=str, help="Path to the configuration file"
+    )
+    args = parser.parse_args()
+    with open(args.config_path, "r") as stream:
         config = yaml.load(stream, yaml.FullLoader)
 
+    """Loader"""
     mat_file_path = config["data"]["file_path"]
     sample_num = config["data"]["sample_num"]
     check_id = config["data"]["check_id"]
-
-    """Loader"""
     rho_labels = scipy.io.loadmat(mat_file_path)["rhos"]
     u_labels = scipy.io.loadmat(mat_file_path)["us"]
     V_labels = scipy.io.loadmat(mat_file_path)["Vs"]
