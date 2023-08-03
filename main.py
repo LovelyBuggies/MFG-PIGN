@@ -48,10 +48,8 @@ if __name__ == "__main__":
     }
 
     """Params"""
-    all_transitions, all_cumulative_transitions = ring_loader.get_transition_matrix()
-    all_transition_tester(
-        ring_loader, all_transitions, all_cumulative_transitions, check_id
-    )
+    all_transitions, all_cum_transitions = ring_loader.get_transition_matrix()
+    all_transition_tester(ring_loader, all_transitions, all_cum_transitions, check_id)
 
     init_rho_copies = np.repeat(
         (ring_loader.init_rhos[:, :, None]), ring_loader.T, axis=-1
@@ -63,7 +61,7 @@ if __name__ == "__main__":
     )
     for sample_i in range(ring_loader.n_samples):
         for t in range(ring_loader.T):
-            messages[sample_i, t, :, :, 0] = all_cumulative_transitions[sample_i][t]
+            messages[sample_i, t, :, :, 0] = all_cum_transitions[sample_i][t]
 
     """Train"""
     for it in range(config["train"]["epochs"]):

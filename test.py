@@ -4,7 +4,7 @@ from utils import plot_3d
 
 
 def all_transition_tester(
-    ring_loader, all_transitions, all_cumulative_transitions, wanna_check=0
+    ring_loader, all_transitions, all_cum_transitions, wanna_check=0
 ):
     plot_3d(8, 8, ring_loader.rhos[wanna_check], "pre")
     rhos_1 = np.zeros(
@@ -13,7 +13,7 @@ def all_transition_tester(
     for sample_i in range(ring_loader.n_samples):
         for t in range(ring_loader.T):
             rhos_1[sample_i, :, t] = np.dot(
-                all_cumulative_transitions[sample_i][t],
+                all_cum_transitions[sample_i][t],
                 ring_loader.init_rhos[sample_i, :],
             )
 
