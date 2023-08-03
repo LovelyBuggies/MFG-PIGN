@@ -70,12 +70,11 @@ if __name__ == "__main__":
         # forward input as (T, X)
         model_output = model(model_input, messages=messages)
         preds = torch.transpose(model_output, 2, 1)
-        # loss = supervised_loss(
-        #     preds,
-        #     torch.from_numpy(rho_labels),
-        #     loss_kwargs,
-        # )
-        loss = transition_loss(
+        loss = 0 * supervised_loss(
+            preds,
+            torch.from_numpy(rho_labels),
+            loss_kwargs,
+        ) + 1 * transition_loss(
             preds,
             all_transitions,
             ring_loader.init_rhos,
