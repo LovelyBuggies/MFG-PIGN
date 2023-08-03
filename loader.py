@@ -10,10 +10,6 @@ class RingRoadLoader:
         self.init_rhos, self.terminal_Vs = rhos[:, :, 0], Vs[:, :, -1]
         self.delta_x, self.delta_t = 1 / self.N, 1 / self.T
 
-        self.A = np.eye(self.N, dtype=np.float32)
-        for i in range(self.N):
-            self.A[i, i - 1] = 1.0
-
     def get_transition_matrix(self):
         all_transitions, all_cumulative_transitions = list(), list()
         for sample_i in range(self.n_samples):
