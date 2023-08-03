@@ -18,9 +18,10 @@ if __name__ == "__main__":
     """Loader"""
     SAMPLE_NUM = 1
     WANNA_CHECK = 0
-    rho_labels = scipy.io.loadmat("data/data-classic.mat")["rhos"]
-    u_labels = scipy.io.loadmat("data/data-classic.mat")["us"]
-    V_labels = scipy.io.loadmat("data/data-classic.mat")["Vs"]
+    MAT_FILE_PATH = "data/data-classic.mat"
+    rho_labels = scipy.io.loadmat(MAT_FILE_PATH)["rhos"]
+    u_labels = scipy.io.loadmat(MAT_FILE_PATH)["us"]
+    V_labels = scipy.io.loadmat(MAT_FILE_PATH)["Vs"]
     rho_labels = np.array(rho_labels, dtype=np.float32)[:SAMPLE_NUM, :, :]
     u_labels = np.array(u_labels, dtype=np.float32)[:SAMPLE_NUM, :, :]
     V_labels = np.array(V_labels, dtype=np.float32)[:SAMPLE_NUM, :, :]
