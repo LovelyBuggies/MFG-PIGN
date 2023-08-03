@@ -33,5 +33,3 @@ train:
   lr: 0.001
   w_ic: 0.6
   w_physics: 0.4
-  save_dir: 'model'
-  save_name: 'pign.pt'
