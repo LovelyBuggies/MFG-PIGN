@@ -5,7 +5,7 @@ import scipy.io
 import torch
 from src.loader import RingRoadLoader
 from src.utils import get_args_kwargs
-from src.runner import run_rho, run_V
+from src.runner import run_rho, run_V, run_rho_V
 
 
 if __name__ == "__main__":
@@ -14,7 +14,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config_path", type=str, help="Path to the configuration file"
     )
+    parser.add_argument("--run", type=str, help="rho v or rho_v")
     args = parser.parse_args()
+    run_option = args.run
     with open(args.config_path, "r") as stream:
         config = yaml.load(stream, yaml.FullLoader)
 
@@ -45,5 +47,31 @@ if __name__ == "__main__":
         f_x_kwargs,
     )
 
-    run_rho(ring_loader, args, config, check_id, test=True, show=True)
-    run_V(ring_loader, args, config, check_id, test=True, show=True)
+    epoch = config["train"]["epochs"]
+    if run_option == "rho":
+        run_rho(
+            ring_loader,
+            ring_loader.us,
+            args,
+            config,
+            epoch,
+            check_id,
+            test=True,
+            show=True,
+        )
+    elif run_option == "v":
+        run_V(
+            ring_loader,
+            ring_loader.us,
+            ring_loader.rhos,
+            args,
+            config,
+            epoch,
+            check_id,
+            test=True,
+            show=True,
+        )
+    elif run_option == "rho_v":
+        run_rho_V(ring_loader, args, config, epoch, check_id, show=True)
+    else:
+        raise AttributeError("Need a valid run option")

@@ -7,7 +7,9 @@ from .test import all_trans_tester_rho, all_trans_tester_V
 from .utils import plot_3d
 
 
-def run_rho(ring_loader, args, config, check_id, test=True, show=True):
+def run_rho(
+    ring_loader, u_message, args, config, epoch, check_id, test=True, show=True
+):
     model = PIGN_rho(*args)
     optimizer_kwargs = {"lr": config["train"]["lr"]}
     optimizer = torch.optim.Adam(
@@ -20,7 +22,7 @@ def run_rho(ring_loader, args, config, check_id, test=True, show=True):
     }
 
     """Params"""
-    all_trans, all_cum_trans = ring_loader.get_trans_matrix_rho()
+    all_trans, all_cum_trans = ring_loader.get_trans_matrix_rho(u_message)
     if test:
         all_trans_tester_rho(ring_loader, all_trans, all_cum_trans, check_id)
 
@@ -38,7 +40,7 @@ def run_rho(ring_loader, args, config, check_id, test=True, show=True):
 
     """Train"""
     preds = None
-    for it in range(config["train"]["epochs"]):
+    for it in range(epoch):
         # forward input as (T, X)
         model_output = model(model_input, messages=messages)
         preds = torch.transpose(model_output, 2, 1)
@@ -71,8 +73,20 @@ def run_rho(ring_loader, args, config, check_id, test=True, show=True):
             f"pred-{check_id}",
         )
 
+    return preds
 
-def run_V(ring_loader, args, config, check_id, test=True, show=True):
+
+def run_V(
+    ring_loader,
+    u_message,
+    rho_message,
+    args,
+    config,
+    epoch,
+    check_id,
+    test=True,
+    show=True,
+):
     model = PIGN_V(*args)
     optimizer_kwargs = {"lr": config["train"]["lr"]}
     optimizer = torch.optim.Adam(
@@ -85,7 +99,7 @@ def run_V(ring_loader, args, config, check_id, test=True, show=True):
     }
 
     """Params"""
-    all_trans, all_cum_trans = ring_loader.get_trans_matrix_V()
+    all_trans, all_cum_trans = ring_loader.get_trans_matrix_V(u_message, rho_message)
     if test:
         all_trans_tester_V(ring_loader, all_trans, all_cum_trans, check_id)
 
@@ -109,7 +123,7 @@ def run_V(ring_loader, args, config, check_id, test=True, show=True):
 
     """Train"""
     preds = None
-    for it in range(config["train"]["epochs"]):
+    for it in range(epoch):
         # forward input as (T, X)
         model_output = model(model_input, messages=messages)
         preds = torch.transpose(model_output, 2, 1)
@@ -128,14 +142,8 @@ def run_V(ring_loader, args, config, check_id, test=True, show=True):
         optimizer.step()
         print("it=", it, "loss=", float(loss))
 
-    plot_3d(
-        ring_loader.N + 1,
-        ring_loader.T + 1,
-        ring_loader.Vs[check_id],
-        f"truth-{check_id}",
-    )
-    V_preds = preds[check_id].detach().numpy()
-    V_preds[-1, :] = V_preds[0, :]
+    V_preds = preds.detach().numpy()
+    V_preds[:, -1, :] = V_preds[:, 0, :]
     if show:
         plot_3d(
             ring_loader.N + 1,
@@ -143,4 +151,60 @@ def run_V(ring_loader, args, config, check_id, test=True, show=True):
             ring_loader.Vs[check_id],
             f"truth-{check_id}",
         )
-        plot_3d(ring_loader.N + 1, ring_loader.T + 1, V_preds, f"pred-{check_id}")
+        plot_3d(
+            ring_loader.N + 1, ring_loader.T + 1, V_preds[check_id], f"pred-{check_id}"
+        )
+
+    return V_preds
+
+
+def run_rho_V(ring_loader, args, config, epoch, check_id, show=True):
+    rho_preds = 0.5 * np.ones(
+        (ring_loader.n_samples, ring_loader.N, ring_loader.T), dtype=np.float32
+    )
+    V_preds = np.zeros(
+        (ring_loader.n_samples, ring_loader.N + 1, ring_loader.T + 1), dtype=np.float32
+    )
+    rho_labels = ring_loader.rhos
+    V_labels = ring_loader.Vs
+    u_labels = ring_loader.us
+    inner_epoch = 500
+    epoch = 1
+    for it in range(epoch):
+        print(f"-------- Epoch: {it} --------\n")
+        # u_message = ring_loader.get_u_from_rho_V(rho_preds, V_preds)
+        # rho_message = rho_preds  # or get_rho_from_u
+        u_message = u_labels
+        rho_message = rho_labels
+        rho_preds = run_rho(
+            ring_loader,
+            u_message,
+            args,
+            config,
+            epoch=inner_epoch,
+            check_id=check_id,
+            test=False,
+            show=True,
+        )
+        V_preds = run_V(
+            ring_loader,
+            u_message,
+            rho_message,
+            args,
+            config,
+            epoch=inner_epoch,
+            check_id=check_id,
+            test=False,
+            show=True,
+        )
+
+    if show:
+        plot_3d(
+            ring_loader.N,
+            ring_loader.T,
+            rho_preds[check_id].detach().numpy(),
+            f"pred-{check_id}",
+        )
+        plot_3d(
+            ring_loader.N + 1, ring_loader.T + 1, V_preds[check_id], f"pred-{check_id}"
+        )
