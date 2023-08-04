@@ -11,12 +11,12 @@ class RingRoadLoader:
         self.delta_x, self.delta_t = 1 / self.N, 1 / self.T
 
     def get_transition_matrix(self):
-        all_transitions, all_cum_transitions = list(), list()
+        all_trans, all_cum_trans = list(), list()
         for sample_i in range(self.n_samples):
-            transitions, cum_transitions = list(), list()
+            trans, cum_trans = list(), list()
             P_prev = np.eye(self.N, dtype=np.float32)
-            transitions.append(P_prev)
-            cum_transitions.append(P_prev)
+            trans.append(P_prev)
+            cum_trans.append(P_prev)
             for t in range(1, self.T):
                 P = np.zeros((self.N, self.N), dtype=np.float32)
                 for i in range(self.N):
@@ -27,11 +27,11 @@ class RingRoadLoader:
                         1 - self.us[sample_i, i, t - 1]
                     )
 
-                transitions.append(P)
+                trans.append(P)
                 P_prev = np.dot(P, P_prev)
-                cum_transitions.append(P_prev)
+                cum_trans.append(P_prev)
 
-            all_transitions.append(transitions)
-            all_cum_transitions.append(cum_transitions)
+            all_trans.append(trans)
+            all_cum_trans.append(cum_trans)
 
-        return all_transitions, all_cum_transitions
+        return all_trans, all_cum_trans

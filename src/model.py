@@ -56,7 +56,7 @@ class MLP(nn.Module):
         return self.model(x)
 
 
-class PIGN(nn.Module):
+class PIGN_rho(nn.Module):
     def __init__(
         self,
         f_channel_args,

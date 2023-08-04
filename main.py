@@ -4,14 +4,14 @@ import numpy as np
 import scipy.io
 import torch
 from src.loader import RingRoadLoader
-from src.model import PIGN
+from src.model import PIGN_rho
 from src.loss import supervised_loss, transition_loss
 from src.utils import plot_3d, get_args_kwargs
-from src.test import all_transition_tester
+from src.test import all_trans_tester
 
 
 def runner(ring_loader, args, config, test=True):
-    model = PIGN(*args)
+    model = PIGN_rho(*args)
     optimizer_kwargs = {"lr": config["train"]["lr"]}
     optimizer = torch.optim.Adam(
         [p for p in model.parameters() if p.requires_grad is True], **optimizer_kwargs
@@ -23,11 +23,9 @@ def runner(ring_loader, args, config, test=True):
     }
 
     """Params"""
-    all_transitions, all_cum_transitions = ring_loader.get_transition_matrix()
+    all_trans, all_cum_trans = ring_loader.get_transition_matrix()
     if test:
-        all_transition_tester(
-            ring_loader, all_transitions, all_cum_transitions, check_id
-        )
+        all_trans_tester(ring_loader, all_trans, all_cum_trans, check_id)
 
     init_rho_copies = np.repeat(
         (ring_loader.init_rhos[:, :, None]), ring_loader.T, axis=-1
@@ -39,7 +37,7 @@ def runner(ring_loader, args, config, test=True):
     )
     for sample_i in range(ring_loader.n_samples):
         for t in range(ring_loader.T):
-            messages[sample_i, t, :, :, 0] = all_cum_transitions[sample_i][t]
+            messages[sample_i, t, :, :, 0] = all_cum_trans[sample_i][t]
 
     """Train"""
     for it in range(config["train"]["epochs"]):
@@ -52,7 +50,7 @@ def runner(ring_loader, args, config, test=True):
             loss_kwargs,
         ) + 1 * transition_loss(
             preds,
-            all_transitions,
+            all_trans,
             ring_loader.init_rhos,
             loss_kwargs,
         )
