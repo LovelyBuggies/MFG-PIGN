@@ -7,7 +7,7 @@ from .test import all_trans_tester_rho, all_trans_tester_V
 from .utils import plot_3d
 
 
-def run_rho(ring_loader, args, config, check_id, test=True):
+def run_rho(ring_loader, args, config, check_id, test=True, show=True):
     model = PIGN_rho(*args)
     optimizer_kwargs = {"lr": config["train"]["lr"]}
     optimizer = torch.optim.Adam(
@@ -57,18 +57,22 @@ def run_rho(ring_loader, args, config, check_id, test=True):
         optimizer.step()
         print("it=", it, "loss=", float(loss))
 
-    plot_3d(
-        ring_loader.N, ring_loader.T, ring_loader.rhos[check_id], f"truth-{check_id}"
-    )
-    plot_3d(
-        ring_loader.N,
-        ring_loader.T,
-        preds[check_id].detach().numpy(),
-        f"pred-{check_id}",
-    )
+    if show:
+        plot_3d(
+            ring_loader.N,
+            ring_loader.T,
+            ring_loader.rhos[check_id],
+            f"truth-{check_id}",
+        )
+        plot_3d(
+            ring_loader.N,
+            ring_loader.T,
+            preds[check_id].detach().numpy(),
+            f"pred-{check_id}",
+        )
 
 
-def run_V(ring_loader, args, config, check_id, test=True):
+def run_V(ring_loader, args, config, check_id, test=True, show=True):
     model = PIGN_V(*args)
     optimizer_kwargs = {"lr": config["train"]["lr"]}
     optimizer = torch.optim.Adam(
@@ -132,4 +136,11 @@ def run_V(ring_loader, args, config, check_id, test=True):
     )
     V_preds = preds[check_id].detach().numpy()
     V_preds[-1, :] = V_preds[0, :]
-    plot_3d(ring_loader.N + 1, ring_loader.T + 1, V_preds, f"pred-{check_id}")
+    if show:
+        plot_3d(
+            ring_loader.N + 1,
+            ring_loader.T + 1,
+            ring_loader.Vs[check_id],
+            f"truth-{check_id}",
+        )
+        plot_3d(ring_loader.N + 1, ring_loader.T + 1, V_preds, f"pred-{check_id}")

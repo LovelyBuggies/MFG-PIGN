@@ -45,5 +45,5 @@ if __name__ == "__main__":
         f_x_kwargs,
     )
 
-    run_rho(ring_loader, args, config, check_id, test=True)
-    run_V(ring_loader, args, config, check_id, test=True)
+    run_rho(ring_loader, args, config, check_id, test=True, show=True)
+    run_V(ring_loader, args, config, check_id, test=True, show=True)
