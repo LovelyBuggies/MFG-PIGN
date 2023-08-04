@@ -166,10 +166,9 @@ def run_rho_V(ring_loader, args, config, epoch, check_id, show=True):
         (ring_loader.n_samples, ring_loader.N + 1, ring_loader.T + 1), dtype=np.float32
     )
     rho_labels = ring_loader.rhos
-    V_labels = ring_loader.Vs
     u_labels = ring_loader.us
     inner_epoch = 500
-    epoch = 1
+    epoch = 5
     for it in range(epoch):
         print(f"-------- Epoch: {it} --------\n")
         # u_message = ring_loader.get_u_from_rho_V(rho_preds, V_preds)

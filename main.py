@@ -72,6 +72,6 @@ if __name__ == "__main__":
             show=True,
         )
     elif run_option == "rho_v":
-        run_rho_V(ring_loader, args, config, epoch, check_id, show=True)
+        run_rho_V(ring_loader, args, config, epoch, check_id, show=False)
     else:
         raise AttributeError("Need a valid run option")
