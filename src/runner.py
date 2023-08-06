@@ -58,19 +58,21 @@ def run_rho(
         loss.backward()
         optimizer.step()
         print("it=", it, "loss=", float(loss))
+        if loss < 1e-5:
+            break
 
     if show:
         plot_3d(
             ring_loader.N,
             ring_loader.T,
             ring_loader.rhos[check_id],
-            f"truth-{check_id}",
+            f"truth-rho-{check_id}",
         )
         plot_3d(
             ring_loader.N,
             ring_loader.T,
             preds[check_id].detach().numpy(),
-            f"pred-{check_id}",
+            f"pred-rho-{check_id}",
         )
 
     return preds
@@ -141,6 +143,8 @@ def run_V(
         loss.backward()
         optimizer.step()
         print("it=", it, "loss=", float(loss))
+        if loss < 1e-5:
+            break
 
     V_preds = preds.detach().numpy()
     V_preds[:, -1, :] = V_preds[:, 0, :]
@@ -149,32 +153,39 @@ def run_V(
             ring_loader.N + 1,
             ring_loader.T + 1,
             ring_loader.Vs[check_id],
-            f"truth-{check_id}",
+            f"truth-V-{check_id}",
         )
         plot_3d(
-            ring_loader.N + 1, ring_loader.T + 1, V_preds[check_id], f"pred-{check_id}"
+            ring_loader.N + 1,
+            ring_loader.T + 1,
+            V_preds[check_id],
+            f"pred-V-{check_id}",
         )
 
     return V_preds
 
 
 def run_rho_V(ring_loader, args, config, epoch, check_id, show=True):
+    rho_labels = ring_loader.rhos
+    V_labels = ring_loader.Vs
     rho_preds = 0.5 * np.ones(
         (ring_loader.n_samples, ring_loader.N, ring_loader.T), dtype=np.float32
     )
     V_preds = np.zeros(
         (ring_loader.n_samples, ring_loader.N + 1, ring_loader.T + 1), dtype=np.float32
     )
-    rho_labels = ring_loader.rhos
-    u_labels = ring_loader.us
-    inner_epoch = 500
+    rho_preds = rho_labels
+    V_preds = V_labels
+    inner_epoch = 1000
     epoch = 5
     for it in range(epoch):
         print(f"-------- Epoch: {it} --------\n")
-        # u_message = ring_loader.get_u_from_rho_V(rho_preds, V_preds)
-        # rho_message = rho_preds  # or get_rho_from_u
-        u_message = u_labels
-        rho_message = rho_labels
+        u_message = ring_loader.get_u_from_rho_V(rho_preds, V_preds)
+        rho_message = (
+            rho_preds if type(rho_preds) == np.ndarray else rho_preds.detach().numpy()
+        )  # or get_rho_from_u
+        # u_message = u_labels
+        # rho_message = rho_labels
         rho_preds = run_rho(
             ring_loader,
             u_message,
@@ -202,8 +213,11 @@ def run_rho_V(ring_loader, args, config, epoch, check_id, show=True):
             ring_loader.N,
             ring_loader.T,
             rho_preds[check_id].detach().numpy(),
-            f"pred-{check_id}",
+            f"pred-rho-{check_id}",
         )
         plot_3d(
-            ring_loader.N + 1, ring_loader.T + 1, V_preds[check_id], f"pred-{check_id}"
+            ring_loader.N + 1,
+            ring_loader.T + 1,
+            V_preds[check_id],
+            f"pred-V-{check_id}",
         )
