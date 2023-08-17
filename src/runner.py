@@ -191,7 +191,7 @@ def run_rho_V(ring_loader, args, config, epoch, check_id, show=True, verbose=Tru
     rho_preds = np.repeat(ring_loader.init_rhos[:, :, None], ring_loader.T, axis=-1)
     V_preds = np.repeat(ring_loader.terminal_Vs[:, :, None], ring_loader.T + 1, axis=-1)
     V_preds[:, -1, :] = V_preds[:, 0, :]
-    epoch = 2
+    epoch = 20
     u_hist, rho_hist = list(), list()
     best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
     for ep in range(epoch):
@@ -208,7 +208,7 @@ def run_rho_V(ring_loader, args, config, epoch, check_id, show=True, verbose=Tru
             u_message,
             args,
             config,
-            epoch=1000,
+            epoch=epoch,
             check_id=check_id,
             test=False,
             show=False,
@@ -221,7 +221,7 @@ def run_rho_V(ring_loader, args, config, epoch, check_id, show=True, verbose=Tru
             rho_message,
             args,
             config,
-            epoch=1000,
+            epoch=epoch,
             check_id=check_id,
             test=False,
             show=False,
