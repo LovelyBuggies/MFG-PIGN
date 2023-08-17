@@ -84,7 +84,7 @@ def run_rho(
         plot_3d(
             ring_loader.N,
             ring_loader.T,
-            preds[check_id],
+            rho_preds[check_id],
             f"pred-rho-{check_id}",
         )
 

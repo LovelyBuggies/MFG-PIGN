@@ -40,7 +40,7 @@ def all_trans_tester_V(ring_loader, all_trans, all_cum_trans, check_id=0):
             )
 
     Vs_1[:, -1, :] = Vs_1[:, 0, :]
-    plot_3d(ring_loader.N + 1, ring_loader.T + 1, Vs_1[check_id], "trans")
+    plot_3d(ring_loader.N + 1, ring_loader.T + 1, Vs_1[check_id], "cum-trans")
 
     Vs_2 = np.zeros(
         (ring_loader.n_samples, ring_loader.N + 1, ring_loader.T + 1), dtype=np.float32
