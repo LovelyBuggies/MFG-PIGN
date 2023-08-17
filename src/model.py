@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import numpy as np
 
 
 def instantiate_activation_function(function_name):
@@ -72,6 +73,7 @@ class PIGN_rho(nn.Module):
         self.f_x = MLP(f_x_args, f_x_kwargs)
 
     def forward(self, x, messages=None):
+        x = (x - np.min(x)) / (np.max(x) - np.min(x))
         rhos = torch.from_numpy(x).to(self.f_x.device)
         x_channel = torch.from_numpy(messages).to(
             self.f_channel.device
@@ -102,6 +104,7 @@ class PIGN_V(nn.Module):
         self.f_x = MLP(f_x_args, f_x_kwargs)
 
     def forward(self, x, messages=None):
+        x = (x - np.min(x)) / (np.max(x) - np.min(x))
         Vs = torch.from_numpy(x).to(self.f_x.device)
         x_channel = torch.from_numpy(messages).to(
             self.f_channel.device

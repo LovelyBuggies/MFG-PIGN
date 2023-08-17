@@ -1,14 +1,23 @@
 import numpy as np
 import torch
 
-from .model import PIGN_rho, PIGN_V
-from .loss import supervised_loss, transition_loss_rho, transition_loss_V
-from .test import all_trans_tester_rho, all_trans_tester_V
-from .utils import plot_3d
+from src.model import PIGN_rho, PIGN_V
+from src.loss import supervised_loss, transition_loss_rho, transition_loss_V
+from src.test import all_trans_tester_rho, all_trans_tester_V
+from src.utils import plot_3d, get_u_from_rho_V
 
 
 def run_rho(
-    ring_loader, u_message, args, config, epoch, check_id, test=True, show=True
+    ring_loader,
+    u_message,
+    args,
+    config,
+    epoch,
+    check_id,
+    test=True,
+    show=True,
+    early_stop=True,
+    verbose=True,
 ):
     model = PIGN_rho(*args)
     optimizer_kwargs = {"lr": config["train"]["lr"]}
@@ -44,23 +53,27 @@ def run_rho(
         # forward input as (T, X)
         model_output = model(model_input, messages=messages)
         preds = torch.transpose(model_output, 2, 1)
-        loss = 0 * supervised_loss(
+        sup_loss = supervised_loss(
             preds,
             torch.from_numpy(ring_loader.rhos),
             loss_kwargs,
-        ) + 1 * transition_loss_rho(
+        )
+        tran_loss = transition_loss_rho(
             preds,
             all_trans,
             ring_loader.init_rhos,
             loss_kwargs,
         )
+        loss = tran_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print("it=", it, "loss=", float(loss))
-        if loss < 1e-5:
+        if verbose:
+            print("it=", it, "loss=", float(loss))
+        if early_stop and loss < 1e-7:
             break
 
+    rho_preds = preds.detach().numpy()
     if show:
         plot_3d(
             ring_loader.N,
@@ -71,11 +84,11 @@ def run_rho(
         plot_3d(
             ring_loader.N,
             ring_loader.T,
-            preds[check_id].detach().numpy(),
+            preds[check_id],
             f"pred-rho-{check_id}",
         )
 
-    return preds
+    return rho_preds, float(sup_loss)
 
 
 def run_V(
@@ -88,6 +101,8 @@ def run_V(
     check_id,
     test=True,
     show=True,
+    early_stop=True,
+    verbose=True,
 ):
     model = PIGN_V(*args)
     optimizer_kwargs = {"lr": config["train"]["lr"]}
@@ -129,21 +144,24 @@ def run_V(
         # forward input as (T, X)
         model_output = model(model_input, messages=messages)
         preds = torch.transpose(model_output, 2, 1)
-        loss = 0 * supervised_loss(
+        sup_loss = supervised_loss(
             preds[:, :-1, :],
             torch.from_numpy(ring_loader.Vs[:, :-1, :]),
             loss_kwargs,
-        ) + 1 * transition_loss_V(
+        )
+        tran_loss = transition_loss_V(
             preds,
             all_trans,
             ring_loader.terminal_Vs,
             loss_kwargs,
         )
+        loss = tran_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print("it=", it, "loss=", float(loss))
-        if loss < 1e-5:
+        if verbose:
+            print("it=", it, "loss=", float(loss))
+        if early_stop and loss < 1e-7:
             break
 
     V_preds = preds.detach().numpy()
@@ -162,62 +180,72 @@ def run_V(
             f"pred-V-{check_id}",
         )
 
-    return V_preds
+    return V_preds, float(sup_loss)
 
 
-def run_rho_V(ring_loader, args, config, epoch, check_id, show=True):
+def run_rho_V(ring_loader, args, config, epoch, check_id, show=True, verbose=True):
     rho_labels = ring_loader.rhos
     V_labels = ring_loader.Vs
-    rho_preds = 0.5 * np.ones(
-        (ring_loader.n_samples, ring_loader.N, ring_loader.T), dtype=np.float32
-    )
-    V_preds = np.zeros(
-        (ring_loader.n_samples, ring_loader.N + 1, ring_loader.T + 1), dtype=np.float32
-    )
-    rho_preds = rho_labels
-    V_preds = V_labels
-    inner_epoch = 1000
-    epoch = 5
-    for it in range(epoch):
-        print(f"-------- Epoch: {it} --------\n")
-        u_message = ring_loader.get_u_from_rho_V(rho_preds, V_preds)
-        rho_message = (
-            rho_preds if type(rho_preds) == np.ndarray else rho_preds.detach().numpy()
-        )  # or get_rho_from_u
-        # u_message = u_labels
-        # rho_message = rho_labels
-        rho_preds = run_rho(
+    # rho_preds = rho_labels
+    # V_preds = V_labels
+    rho_preds = np.repeat(ring_loader.init_rhos[:, :, None], ring_loader.T, axis=-1)
+    V_preds = np.repeat(ring_loader.terminal_Vs[:, :, None], ring_loader.T + 1, axis=-1)
+    V_preds[:, -1, :] = V_preds[:, 0, :]
+    epoch = 2
+    u_hist, rho_hist = list(), list()
+    best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
+    for ep in range(epoch):
+        u_message = get_u_from_rho_V(rho_preds, V_preds)
+        u_hist.append(u_message)
+        u_message = np.array(u_hist).mean(axis=0)
+        # u_message = ring_loader.us
+        rho_message = rho_preds
+        # rho_hist.append(rho_message)
+        # rho_message = np.array(rho_hist).mean(axis=0)
+
+        rho_preds, rho_loss = run_rho(
             ring_loader,
             u_message,
             args,
             config,
-            epoch=inner_epoch,
+            epoch=1000,
             check_id=check_id,
             test=False,
-            show=True,
+            show=False,
+            early_stop=False,
+            verbose=False,
         )
-        V_preds = run_V(
+        V_preds, V_loss = run_V(
             ring_loader,
             u_message,
             rho_message,
             args,
             config,
-            epoch=inner_epoch,
+            epoch=1000,
             check_id=check_id,
             test=False,
-            show=True,
+            show=False,
+            early_stop=False,
+            verbose=False,
         )
+        if rho_loss < best_loss:
+            best_rho = rho_preds
+            best_V = V_preds
+            best_ep = ep
+            best_loss = rho_loss
+        if verbose:
+            print("*** Epoch=", ep, "rho loss=", rho_loss, ", V loss=", V_loss)
 
     if show:
         plot_3d(
             ring_loader.N,
             ring_loader.T,
-            rho_preds[check_id].detach().numpy(),
-            f"pred-rho-{check_id}",
+            best_rho[check_id],
+            f"pred-rho-{check_id}-ep{best_ep}",
         )
         plot_3d(
             ring_loader.N + 1,
             ring_loader.T + 1,
-            V_preds[check_id],
-            f"pred-V-{check_id}",
+            best_V[check_id],
+            f"pred-V-{check_id}-ep{best_ep}",
         )

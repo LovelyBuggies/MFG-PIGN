@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class RingRoadLoader:
+class RingRoad:
     def __init__(self, rhos, us, Vs):
         super().__init__()
 
@@ -10,21 +10,6 @@ class RingRoadLoader:
         self.init_rhos, self.terminal_Vs = rhos[:, :, 0].copy(), Vs[:, :, -1].copy()
         self.terminal_Vs[:, -1] = 1  # reward dimension
         self.delta_x, self.delta_t = 1 / self.N, 1 / self.T
-
-    def get_u_from_rho_V(self, rhos, Vs):
-        n_samples, N, T = rhos.shape
-        delta_t, delta_x = 1 / N, 1 / T
-        us = np.zeros((self.n_samples, self.N, self.T), dtype=np.float32)
-        for sample_i in range(n_samples):
-            for t in range(T):
-                for i in range(N):
-                    us[sample_i, i, t] = (
-                        (Vs[sample_i, i, t + 1] - Vs[sample_i, i + 1, t + 1]) / delta_x
-                        + 1
-                        - rhos[sample_i, i, t]
-                    )
-
-        return us
 
     def get_trans_matrix_rho(self, us):
         n_samples, N, T = us.shape
@@ -76,7 +61,7 @@ class RingRoadLoader:
 
                 P[-1, -1] = 1  # to keep reward dimension
                 trans = [P] + trans
-                P_prev = np.dot(P, P_prev)  # may be changed
+                P_prev = np.dot(P, P_prev)
                 cum_trans = [P_prev] + cum_trans
 
             all_trans.append(trans)

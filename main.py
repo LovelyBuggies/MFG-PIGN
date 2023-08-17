@@ -3,7 +3,7 @@ import yaml
 import numpy as np
 import scipy.io
 import torch
-from src.loader import RingRoadLoader
+from src.loader import RingRoad
 from src.utils import get_args_kwargs
 from src.runner import run_rho, run_V, run_rho_V
 
@@ -20,19 +20,17 @@ if __name__ == "__main__":
     with open(args.config_path, "r") as stream:
         config = yaml.load(stream, yaml.FullLoader)
 
-    """Loader"""
     mat_file_path = config["data"]["file_path"]
     sample_num = config["data"]["sample_num"]
     check_id = config["data"]["check_id"]
     rho_labels = scipy.io.loadmat(mat_file_path)["rhos"]
     u_labels = scipy.io.loadmat(mat_file_path)["us"]
     V_labels = scipy.io.loadmat(mat_file_path)["Vs"]
-    rho_labels = np.array(rho_labels, dtype=np.float32)[:sample_num, :, :]
-    u_labels = np.array(u_labels, dtype=np.float32)[:sample_num, :, :]
-    V_labels = np.array(V_labels, dtype=np.float32)[:sample_num, :, :]
-    ring_loader = RingRoadLoader(rho_labels, u_labels, V_labels)
+    rho_labels = np.array(rho_labels)[:sample_num, :, :].astype(np.float32)
+    u_labels = np.array(u_labels)[:sample_num, :, :].astype(np.float32)
+    V_labels = np.array(V_labels)[:sample_num, :, :].astype(np.float32)
+    ring_loader = RingRoad(rho_labels, u_labels, V_labels)
 
-    """Hyper-params"""
     f_channel_args, f_channel_kwargs = get_args_kwargs(
         config["model"]["f_channel"], device
     )
