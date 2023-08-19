@@ -186,15 +186,15 @@ def run_V(
 def run_rho_V(ring_loader, args, config, epoch, check_id, show=True, verbose=True):
     rho_labels = ring_loader.rhos
     V_labels = ring_loader.Vs
-    # rho_preds = rho_labels
-    # V_preds = V_labels
     rho_preds = np.repeat(ring_loader.init_rhos[:, :, None], ring_loader.T, axis=-1)
     V_preds = np.repeat(ring_loader.terminal_Vs[:, :, None], ring_loader.T + 1, axis=-1)
+    # rho_preds = rho_labels
+    # V_preds = V_labels
     V_preds[:, -1, :] = V_preds[:, 0, :]
-    epoch = 20
+    couple_epoch = 50
     u_hist, rho_hist = list(), list()
     best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
-    for ep in range(epoch):
+    for ep in range(couple_epoch):
         u_message = get_u_from_rho_V(rho_preds, V_preds)
         u_hist.append(u_message)
         u_message = np.array(u_hist).mean(axis=0)
