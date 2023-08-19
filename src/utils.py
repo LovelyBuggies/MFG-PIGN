@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
@@ -39,7 +40,8 @@ def plot_3d(n_x, n_t, matrx, ax_name, fig_name=None):
         plt.savefig(fig_name, bbox_inches="tight")
 
 
-def get_args_kwargs(f_config, device):
+def get_args_kwargs(f_config):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     f_args = (
         f_config["input_dim"],
         f_config["output_dim"],

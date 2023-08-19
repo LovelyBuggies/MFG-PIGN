@@ -1,6 +1,5 @@
 data:
   file_path: "data/data-classic.mat"
-  sample_num: 1
   check_id: 0
 
 model:
