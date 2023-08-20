@@ -20,10 +20,10 @@ if __name__ == "__main__":
 
     mat_file_path = config["data"]["file_path"]
     check_id = config["data"]["check_id"]
-    rho_labels = scipy.io.loadmat(mat_file_path)["rhos"].astype(np.float32)
-    u_labels = scipy.io.loadmat(mat_file_path)["us"].astype(np.float32)
-    V_labels = scipy.io.loadmat(mat_file_path)["Vs"].astype(np.float32)
-    ring_loader = RingRoad(rho_labels, u_labels, V_labels)
+    rho = scipy.io.loadmat(mat_file_path)["rhos"].astype(np.float32)
+    u = scipy.io.loadmat(mat_file_path)["us"].astype(np.float32)
+    V = scipy.io.loadmat(mat_file_path)["Vs"].astype(np.float32)
+    ring_loader = RingRoad(rho, u, V)
 
     f_channel_args, f_channel_kwargs = get_args_kwargs(config["model"]["f_channel"])
     f_sum_args, f_sum_kwargs = get_args_kwargs(config["model"]["f_sum"])

@@ -134,7 +134,7 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
     V_preds[:, -1, :] = V_preds[:, 0, :]
     # rho_preds = rho_labels
     # V_preds = V_labels
-    epoch = 30
+    epoch = 50
     u_hist, rho_hist = list(), list()
     best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
     for ep in range(epoch):

@@ -1,5 +1,5 @@
 data:
-  file_path: "data/bellshape.mat"
+  file_path: "data/sinewave.mat"
   check_id: 0
 
 model:
