@@ -2,7 +2,11 @@ import numpy as np
 import torch
 
 from src.ringroad.ringroad_model import PIGN_rho, PIGN_V
-from src.loss import supervised_loss, transition_loss_rho, transition_loss_V
+from src.ringroad.ringroad_loss import (
+    supervised_loss,
+    transition_loss_rho,
+    transition_loss_V,
+)
 from src.utils import plot_3d
 
 
@@ -38,7 +42,7 @@ def run_rho(
             messages[sample_i, t, :, :, 0] = all_cum_trans[sample_i][t]
 
     preds = None
-    for it in range(config["train"]["epochs"]):
+    for it in range(config["train"]["iterations"]):
         model_output = model(model_input, messages=messages)
         preds = torch.transpose(model_output, 2, 1)
         sup_loss = supervised_loss(
@@ -99,7 +103,7 @@ def run_V(
             messages[sample_i, t, :, :, 0] = all_cum_trans[sample_i][t]
 
     preds = None
-    for it in range(config["train"]["epochs"]):
+    for it in range(config["train"]["iterations"]):
         # forward input as (T, X)
         model_output = model(model_input, messages=messages)
         preds = torch.transpose(model_output, 2, 1)
@@ -133,7 +137,7 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
     V_preds[:, -1, :] = V_preds[:, 0, :]
     # rho_preds = rho_labels
     # V_preds = V_labels
-    epoch = 50
+    epoch = config["train"]["epochs"]
     u_hist, rho_hist = list(), list()
     best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
     for ep in range(epoch):

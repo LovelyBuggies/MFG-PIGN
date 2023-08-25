@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
-from utils import MLP
+from src.utils import MLP
 
 
 class PIGN_rho(nn.Module):
