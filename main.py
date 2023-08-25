@@ -26,7 +26,7 @@ if __name__ == "__main__":
     f_channel_args, f_channel_kwargs = get_args_kwargs(config["model"]["f_channel"])
     f_sum_args, f_sum_kwargs = get_args_kwargs(config["model"]["f_sum"])
     f_x_args, f_x_kwargs = get_args_kwargs(config["model"]["f_x"])
-    args = (
+    f_args = (
         f_channel_args,
         f_channel_kwargs,
         f_sum_args,
@@ -39,15 +39,20 @@ if __name__ == "__main__":
         from src.ringroad.ringroad_runner import run_rho_V
 
         ring_loader = RingRoadLoader(rho, u, V)
-        run_rho_V(ring_loader, args, config, check_id, show=True)
+        run_rho_V(ring_loader, f_args, config, check_id, show=True)
 
     elif args.network == "braess":
         from src.braess.braess_loader import BraessLoader
         from src.braess.braess_tester import all_trans_tester_rho
+        from src.braess.braess_runner import run_rho
 
         beta = scipy.io.loadmat(mat_file_path)["betas"].astype(np.float32)
         braess_loader = BraessLoader(rho, u, V, beta)
 
-        # to test
         all_trans, all_cum_trans = braess_loader.get_trans_matrix_rho(u, rho, beta)
         all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, 0)
+
+        # rho_message = np.repeat(
+        #     (braess_loader.init_rhos[:, :, :, None]), braess_loader.T, axis=-1
+        # )
+        # rho_preds, rho_loss = run_rho(braess_loader, u, rho_message, beta, f_args, config)

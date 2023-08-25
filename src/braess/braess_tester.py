@@ -7,8 +7,8 @@ def all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, check_id=0):
         braess_loader.N,
         int(braess_loader.T / braess_loader.N),
         braess_loader.rhos[check_id],
-        (0, 2, 3),
-        None,
+        (0, 4, 3),
+        "label",
     )
     rhos_1 = np.zeros(
         (
@@ -51,7 +51,15 @@ def all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, check_id=0):
     plot_4d(
         braess_loader.N,
         int(braess_loader.T / braess_loader.N),
+        rhos_1[check_id, :, :-1, :],
+        (0, 4, 3),
+        "cum_trans",
+    )
+
+    plot_4d(
+        braess_loader.N,
+        int(braess_loader.T / braess_loader.N),
         rhos_2[check_id, :, :-1, :],
-        (0, 2, 3),
-        None,
+        (0, 4, 3),
+        "trans",
     )

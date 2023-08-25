@@ -20,9 +20,9 @@ model:
     last_activation_type: "none"
 
   f_sum:
-    input_dim: 8
+    input_dim: 16
     output_dim: 1
-    hidden_num: 7
+    hidden_num: 5
     fc_dim: 32
     activation_type: "none"
     last_activation_type: "none"

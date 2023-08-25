@@ -45,6 +45,7 @@ class BraessLoader:
             cum_trans = np.zeros((N_edges, N + 1, N + 1, T), dtype=np.float32)
             for edge_i in range(N_edges):
                 trans[edge_i, :, :, 0] = np.eye(N + 1, dtype=np.float32)
+                cum_trans[edge_i, :, :, 0] = np.eye(N + 1, dtype=np.float32)
                 for t in range(1, T):
                     node_i = self.edges[edge_i, 0]
                     if node_i in self.origins:
@@ -72,7 +73,7 @@ class BraessLoader:
 
                     trans[edge_i, -1, -1, t] = 1
                     cum_trans[edge_i, :, :, t] = np.dot(
-                        trans[edge_i, :, :, t], trans[edge_i, :, :, t - 1]
+                        trans[edge_i, :, :, t], cum_trans[edge_i, :, :, t - 1]
                     )
 
             all_trans.append(trans)

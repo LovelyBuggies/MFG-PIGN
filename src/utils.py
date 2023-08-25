@@ -95,7 +95,7 @@ def plot_3d(n_x, n_t, matrix, ax_name, fig_name=None):
         plt.savefig(fig_name, bbox_inches="tight")
 
 
-def plot_4d(n_cell, T_terminal, matrix, concat, fig_name):
+def plot_4d(n_cell, T_terminal, matrix, concat, ax_name, fig_name=None):
     matrix_new = matrix[concat[0], :, :]
     for i in range(1, len(concat)):
         matrix_new = np.append(matrix_new, matrix[concat[i], :, :], axis=0)
@@ -108,6 +108,7 @@ def plot_4d(n_cell, T_terminal, matrix, concat, fig_name):
     surf = ax.plot_surface(
         x_mesh, t_mesh, matrix_new, cmap=cm.jet, linewidth=0, antialiased=False
     )
+    ax.set_zlabel(ax_name, fontsize=24, labelpad=20, rotation=90)
     ax.zaxis.set_major_locator(LinearLocator(10))
     ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
     plt.xlim(max(x), min(x))
