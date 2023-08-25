@@ -1,7 +1,8 @@
 import numpy as np
+from src.utils import plot_4d
 
 
-class RingRoad:
+class RingRoadLoader:
     def __init__(self, rhos, us, Vs):
         super().__init__()
 
@@ -68,3 +69,18 @@ class RingRoad:
             all_cum_trans.append(cum_trans)
 
         return all_trans, all_cum_trans
+
+    def get_u_from_rho_V(self, rhos, Vs):
+        n_samples, N, T = rhos.shape
+        delta_x, delta_t = 1 / N, 1 / T
+        us = np.zeros((n_samples, N, T), dtype=np.float32)
+        for sample_i in range(n_samples):
+            for t in range(T):
+                for i in range(N):
+                    us[sample_i, i, t] = (
+                        (Vs[sample_i, i, t + 1] - Vs[sample_i, i + 1, t + 1]) / delta_t
+                        + 1
+                        - rhos[sample_i, i, t]
+                    )
+
+        return us

@@ -1,10 +1,9 @@
 import numpy as np
 import torch
 
-from src.model import PIGN_rho, PIGN_V
+from src.ringroad.ringroad_model import PIGN_rho, PIGN_V
 from src.loss import supervised_loss, transition_loss_rho, transition_loss_V
-from src.test import all_trans_tester_rho, all_trans_tester_V
-from src.utils import plot_3d, get_u_from_rho_V
+from src.utils import plot_3d
 
 
 def run_rho(
@@ -138,7 +137,7 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
     u_hist, rho_hist = list(), list()
     best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
     for ep in range(epoch):
-        u_message = get_u_from_rho_V(rho_preds, V_preds)
+        u_message = ring_loader.get_u_from_rho_V(rho_preds, V_preds)
         u_hist.append(u_message)
         u_message = np.array(u_hist).mean(axis=0)
         # u_message = ring_loader.us

@@ -1,5 +1,5 @@
 import numpy as np
-from .utils import plot_3d
+from src.utils import plot_3d
 
 
 def all_trans_tester_rho(ring_loader, all_trans, all_cum_trans, check_id=0):

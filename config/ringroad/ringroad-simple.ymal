@@ -1,5 +1,5 @@
 data:
-  file_path: "data/sinewave.mat"
+  file_path: "data/ringroad/ringroad-simple.mat"
   check_id: 0
 
 model:
@@ -22,13 +22,13 @@ model:
   f_sum:
     input_dim: 8
     output_dim: 1
-    hidden_num: 5
+    hidden_num: 7
     fc_dim: 32
     activation_type: "none"
     last_activation_type: "none"
 
 train:
-  epochs: 500
+  epochs: 1000
   lr: 0.001
   w_ic: 0.6
   w_physics: 0.4
