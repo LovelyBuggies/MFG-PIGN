@@ -3,7 +3,7 @@ import yaml
 import numpy as np
 import scipy.io
 import torch
-from src.utils import get_args_kwargs
+from src.utils import get_args_kwargs, plot_4d
 
 
 if __name__ == "__main__":
@@ -55,6 +55,11 @@ if __name__ == "__main__":
         rho_message = np.repeat(
             (braess_loader.init_rhos[:, :, :, None]), braess_loader.T, axis=-1
         )
-        rho_preds, rho_loss = run_rho(
-            braess_loader, u, rho_message, beta, f_args, config
+        rho_preds, rho_loss = run_rho(braess_loader, u, rho, beta, f_args, config)
+        plot_4d(
+            braess_loader.N,
+            int(braess_loader.T / braess_loader.N),
+            rho_preds[0],
+            (0, 4, 3),
+            "pred",
         )
