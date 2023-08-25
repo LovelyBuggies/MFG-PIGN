@@ -69,5 +69,5 @@ def run_rho(
         optimizer.step()
         print(f"It {it}: loss {float(sup_loss)}")
 
-    rho_preds = preds.detach().numpy()
+    rho_preds = preds[:, :, :-1, :].detach().numpy()
     return rho_preds, float(sup_loss)

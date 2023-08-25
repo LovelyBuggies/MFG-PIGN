@@ -49,10 +49,12 @@ if __name__ == "__main__":
         beta = scipy.io.loadmat(mat_file_path)["betas"].astype(np.float32)
         braess_loader = BraessLoader(rho, u, V, beta)
 
-        all_trans, all_cum_trans = braess_loader.get_trans_matrix_rho(u, rho, beta)
-        all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, 0)
+        # all_trans, all_cum_trans = braess_loader.get_trans_matrix_rho(u, rho, beta)
+        # all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, 0)
 
-        # rho_message = np.repeat(
-        #     (braess_loader.init_rhos[:, :, :, None]), braess_loader.T, axis=-1
-        # )
-        # rho_preds, rho_loss = run_rho(braess_loader, u, rho_message, beta, f_args, config)
+        rho_message = np.repeat(
+            (braess_loader.init_rhos[:, :, :, None]), braess_loader.T, axis=-1
+        )
+        rho_preds, rho_loss = run_rho(
+            braess_loader, u, rho_message, beta, f_args, config
+        )
