@@ -53,13 +53,17 @@ if __name__ == "__main__":
         # all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, 0)
 
         rho_message = np.repeat(
-            (braess_loader.init_rhos[:, :, :, None]), braess_loader.T, axis=-1
+            (braess_loader.init_rhos[:, :, :-1, None]), braess_loader.T, axis=-1
         )
-        rho_preds, rho_loss = run_rho(braess_loader, u, rho, beta, f_args, config)
-        plot_4d(
-            braess_loader.N,
-            int(braess_loader.T / braess_loader.N),
-            rho_preds[0],
-            (0, 4, 3),
-            "pred",
-        )
+        for shuo in range(10):
+            print(f"-------------------{shuo}-------------")
+            plot_4d(
+                braess_loader.N,
+                int(braess_loader.T / braess_loader.N),
+                rho_message[0],
+                (0, 4, 3),
+                "pred",
+            )
+            rho_message, rho_loss = run_rho(
+                braess_loader, u, rho_message, beta, f_args, config
+            )

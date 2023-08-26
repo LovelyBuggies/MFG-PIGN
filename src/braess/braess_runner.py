@@ -68,6 +68,8 @@ def run_rho(
         loss.backward()
         optimizer.step()
         print(f"It {it}: loss {float(sup_loss)}")
+        if float(sup_loss) < 1e-6:
+            break
 
     rho_preds = preds[:, :, :-1, :].detach().numpy()
     return rho_preds, float(sup_loss)
