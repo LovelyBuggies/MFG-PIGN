@@ -47,7 +47,8 @@ if __name__ == "__main__":
         from src.braess.braess_runner import run_rho
 
         beta = scipy.io.loadmat(mat_file_path)["betas"].astype(np.float32)
-        braess_loader = BraessLoader(rho, u, V, beta)
+        pi = scipy.io.loadmat(mat_file_path)["pis"].astype(np.float32)
+        braess_loader = BraessLoader(rho, u, V, beta, pi)
 
         # all_trans, all_cum_trans = braess_loader.get_trans_matrix_rho(u, rho, beta)
         # all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, 0)
@@ -67,3 +68,6 @@ if __name__ == "__main__":
             rho_message, rho_loss = run_rho(
                 braess_loader, u, rho_message, beta, f_args, config
             )
+
+        # all_trans, all_cum_trans = braess_loader.get_trans_matrix_V(u, rho, beta)
+        # all_trans_tester_V(braess_loader, all_trans, all_cum_trans, 0)
