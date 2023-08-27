@@ -69,20 +69,20 @@ if __name__ == "__main__":
         #         braess_loader, u, rho_message, beta, f_args, config
         #     )
 
-        all_trans, all_cum_trans = braess_loader.get_trans_matrix_V(u, rho, pi)
-        all_trans_tester_V(braess_loader, all_trans, all_cum_trans, 0)
-
-        V_message = np.repeat(
-            (braess_loader.terminal_Vs[:, :, :-2, None]), braess_loader.T + 1, axis=-1
-        )
-        V_message = braess_loader.Vs
-        for shuo in range(2):
-            print(f"-------------------{shuo}-------------")
-            plot_4d(
-                braess_loader.N,
-                int(braess_loader.T / braess_loader.N),
-                V_message[0, :, :, :-1],
-                (0, 4, 3),
-                "pred",
-            )
-            V_message, V_loss = run_V(braess_loader, u, rho, pi, f_args, config)
+        # all_trans, all_cum_trans = braess_loader.get_trans_matrix_V(u, rho, pi)
+        # all_trans_tester_V(braess_loader, all_trans, all_cum_trans, 0)
+        run_V(braess_loader, u, rho, pi, f_args, config)
+        # V_message = np.repeat(
+        #     (braess_loader.terminal_Vs[:, :, :-2, None]), braess_loader.T + 1, axis=-1
+        # )
+        # V_message = braess_loader.Vs
+        # for shuo in range(2):
+        #     print(f"-------------------{shuo}-------------")
+        #     plot_4d(
+        #         braess_loader.N,
+        #         int(braess_loader.T / braess_loader.N),
+        #         V_message[0, :, :, :-1],
+        #         (0, 4, 3),
+        #         "pred",
+        #     )
+        #     V_message, V_loss = run_V(braess_loader, u, rho, pi, f_args, config)

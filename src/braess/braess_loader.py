@@ -75,8 +75,8 @@ class BraessLoader:
                                 trans[edge_i, 0, -1, t] += influx
 
                     for i in range(N):
-                        trans[edge_i, i, i, t] = (delta_t / delta_x) * (
-                            1 - us[sample_i, edge_i, i, t - 1]
+                        trans[edge_i, i, i, t] = (
+                            1 - (delta_t / delta_x) * us[sample_i, edge_i, i, t - 1]
                         )
                         if i != 0:
                             trans[edge_i, i, i - 1, t] = (delta_t / delta_x) * us[
@@ -105,8 +105,8 @@ class BraessLoader:
                 cum_trans[edge_i, :, :, T] = np.eye(N + 2, dtype=np.float32)
                 for t in range(T - 1, -1, -1):
                     for i in range(N):
-                        trans[edge_i, i, i, t] = (delta_t / delta_x) * (
-                            1 - us[sample_i, edge_i, i, t]
+                        trans[edge_i, i, i, t] = (
+                            1 - (delta_t / delta_x) * us[sample_i, edge_i, i, t]
                         )
                         if i < N - 1:
                             trans[edge_i, i, i + 1, t] = (delta_t / delta_x) * us[

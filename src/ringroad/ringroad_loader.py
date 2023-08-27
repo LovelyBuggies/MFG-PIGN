@@ -25,7 +25,7 @@ class RingRoadLoader:
                 P = np.zeros((N, N), dtype=np.float32)
                 for i in range(N):
                     P[i, i - 1] = (delta_t / delta_x) * us[sample_i, i - 1, t - 1]
-                    P[i, i] = (delta_t / delta_x) * (1 - us[sample_i, i, t - 1])
+                    P[i, i] = 1 - (delta_t / delta_x) * us[sample_i, i, t - 1]
 
                 trans.append(P)
                 P_prev = np.dot(P, P_prev)
@@ -48,7 +48,7 @@ class RingRoadLoader:
             for t in range(T - 1, -1, -1):
                 P = np.zeros((N + 1, N + 1), dtype=np.float32)
                 for i in range(N):
-                    P[i, i] = (delta_t / delta_x) * (1 - us[sample_i, i, t])
+                    P[i, i] = 1 - (delta_t / delta_x) * us[sample_i, i, t]
                     if i < N - 1:
                         P[i, i + 1] = (delta_t / delta_x) * us[sample_i, i, t]
                     else:
