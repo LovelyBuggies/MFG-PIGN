@@ -63,3 +63,66 @@ def all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, check_id=0):
         (0, 4, 3),
         "trans",
     )
+
+
+def all_trans_tester_V(braess_loader, all_trans, all_cum_trans, check_id=0):
+    plot_4d(
+        braess_loader.N,
+        int(braess_loader.T / braess_loader.N),
+        braess_loader.Vs[check_id, :, :, :-1],
+        (0, 4, 3),
+        "label",
+    )
+    Vs_1 = np.zeros(
+        (
+            braess_loader.n_samples,
+            braess_loader.N_edges,
+            braess_loader.N + 2,
+            braess_loader.T + 1,
+        ),
+        dtype=np.float32,
+    )
+    for sample_i in range(braess_loader.n_samples):
+        for edge_i in range(braess_loader.N_edges):
+            for t in range(braess_loader.T + 1):
+                Vs_1[sample_i, edge_i, :, t] = np.dot(
+                    all_cum_trans[sample_i][edge_i, :, :, t],
+                    braess_loader.terminal_Vs[sample_i, edge_i, :],
+                )
+
+    Vs_2 = np.zeros(
+        (
+            braess_loader.n_samples,
+            braess_loader.N_edges,
+            braess_loader.N + 2,
+            braess_loader.T + 1,
+        ),
+        dtype=np.float32,
+    )
+    for sample_i in range(braess_loader.n_samples):
+        for edge_i in range(braess_loader.N_edges):
+            Vs_2[sample_i, edge_i, :, -1] = braess_loader.terminal_Vs[
+                sample_i, edge_i, :
+            ]
+            curr_V_t = Vs_2[sample_i, edge_i, :, -1]
+            for t in range(braess_loader.T, -1, -1):
+                Vs_2[sample_i, edge_i, :, t] = np.dot(
+                    all_trans[sample_i][edge_i, :, :, t], curr_V_t
+                )
+                curr_V_t = Vs_2[sample_i, edge_i, :, t]
+
+    plot_4d(
+        braess_loader.N,
+        int(braess_loader.T / braess_loader.N),
+        Vs_1[check_id, :, :-2, :-1],
+        (0, 4, 3),
+        "cum_trans",
+    )
+
+    plot_4d(
+        braess_loader.N,
+        int(braess_loader.T / braess_loader.N),
+        Vs_2[check_id, :, :-2, :-1],
+        (0, 4, 3),
+        "trans",
+    )

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from src.braess.braess_model import PIGN_rho
+from src.braess.braess_model import PIGN_rho, PIGN_V
 from src.braess.braess_loss import supervised_loss, transition_loss_rho
 from src.utils import plot_4d
 
@@ -73,3 +73,72 @@ def run_rho(
 
     rho_preds = preds[:, :, :-1, :].detach().numpy()
     return rho_preds, float(sup_loss)
+
+
+def run_V(
+    braess_loader,
+    u_message,
+    rho_message,
+    pi_message,
+    args,
+    config,
+):
+    model = PIGN_V(*args)
+    optimizer_kwargs = {"lr": config["train"]["lr"]}
+    optimizer = torch.optim.Adam(
+        [p for p in model.parameters() if p.requires_grad is True], **optimizer_kwargs
+    )
+    loss_kwargs = {
+        "func": torch.nn.MSELoss(),
+        "w_ic": config["train"]["w_ic"],
+        "w_physics": config["train"]["w_physics"],
+    }
+
+    all_trans, all_cum_trans = braess_loader.get_trans_matrix_V(
+        u_message, rho_message, pi_message
+    )
+    terminal_V_copies = np.repeat(
+        (braess_loader.terminal_Vs[:, :, :, None]), braess_loader.T + 1, axis=-1
+    )
+    model_input = np.transpose(terminal_V_copies, (0, 1, 3, 2))
+    messages = np.zeros(
+        (
+            braess_loader.n_samples,
+            braess_loader.N_edges,
+            braess_loader.T + 1,
+            braess_loader.N + 2,
+            braess_loader.N + 2,
+            1,
+        ),
+        dtype=np.float32,
+    )
+    for sample_i in range(braess_loader.n_samples):
+        messages[sample_i, :, :, :, :, 0] = np.transpose(
+            all_cum_trans[sample_i], (0, 3, 1, 2)
+        )
+
+    preds = None
+    for it in range(config["train"]["iterations"]):
+        model_output = model(model_input, messages=messages)
+        preds = torch.transpose(model_output, 3, 2)
+        sup_loss = supervised_loss(
+            preds[:, :, :-2, :],
+            torch.from_numpy(braess_loader.Vs),
+            loss_kwargs,
+        )
+        # tran_loss = transition_loss_rho(
+        #     preds,
+        #     all_trans,
+        #     braess_loader.init_rhos,
+        #     loss_kwargs,
+        # )
+        loss = sup_loss
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        print(f"It {it}: loss {float(sup_loss)}")
+        if float(sup_loss) < 1e-6:
+            break
+
+    V_preds = preds[:, :, :-2, :].detach().numpy()
+    return V_preds, float(sup_loss)

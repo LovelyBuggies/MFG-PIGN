@@ -43,8 +43,8 @@ if __name__ == "__main__":
 
     elif args.network == "braess":
         from src.braess.braess_loader import BraessLoader
-        from src.braess.braess_tester import all_trans_tester_rho
-        from src.braess.braess_runner import run_rho
+        from src.braess.braess_tester import all_trans_tester_rho, all_trans_tester_V
+        from src.braess.braess_runner import run_rho, run_V
 
         beta = scipy.io.loadmat(mat_file_path)["betas"].astype(np.float32)
         pi = scipy.io.loadmat(mat_file_path)["pis"].astype(np.float32)
@@ -52,22 +52,37 @@ if __name__ == "__main__":
 
         # all_trans, all_cum_trans = braess_loader.get_trans_matrix_rho(u, rho, beta)
         # all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, 0)
+        #
+        # rho_message = np.repeat(
+        #     (braess_loader.init_rhos[:, :, :-1, None]), braess_loader.T, axis=-1
+        # )
+        # for shuo in range(10):
+        #     print(f"-------------------{shuo}-------------")
+        #     plot_4d(
+        #         braess_loader.N,
+        #         int(braess_loader.T / braess_loader.N),
+        #         rho_message[0],
+        #         (0, 4, 3),
+        #         "pred",
+        #     )
+        #     rho_message, rho_loss = run_rho(
+        #         braess_loader, u, rho_message, beta, f_args, config
+        #     )
 
-        rho_message = np.repeat(
-            (braess_loader.init_rhos[:, :, :-1, None]), braess_loader.T, axis=-1
+        all_trans, all_cum_trans = braess_loader.get_trans_matrix_V(u, rho, pi)
+        all_trans_tester_V(braess_loader, all_trans, all_cum_trans, 0)
+
+        V_message = np.repeat(
+            (braess_loader.terminal_Vs[:, :, :-2, None]), braess_loader.T + 1, axis=-1
         )
-        for shuo in range(10):
+        V_message = braess_loader.Vs
+        for shuo in range(2):
             print(f"-------------------{shuo}-------------")
             plot_4d(
                 braess_loader.N,
                 int(braess_loader.T / braess_loader.N),
-                rho_message[0],
+                V_message[0, :, :, :-1],
                 (0, 4, 3),
                 "pred",
             )
-            rho_message, rho_loss = run_rho(
-                braess_loader, u, rho_message, beta, f_args, config
-            )
-
-        # all_trans, all_cum_trans = braess_loader.get_trans_matrix_V(u, rho, beta)
-        # all_trans_tester_V(braess_loader, all_trans, all_cum_trans, 0)
+            V_message, V_loss = run_V(braess_loader, u, rho, pi, f_args, config)
