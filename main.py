@@ -75,7 +75,7 @@ if __name__ == "__main__":
         #     (braess_loader.terminal_Vs[:, :, :-2, None]), braess_loader.T + 1, axis=-1
         # )
         V_message = braess_loader.Vs
-        for shuo in range(2):
+        for shuo in range(1):
             print(f"-------------------{shuo}-------------")
             V_message, V_loss = run_V(braess_loader, u, rho, pi, f_args, config)
             plot_4d(
