@@ -122,7 +122,7 @@ class BraessLoader:
 
                         r_i_t = delta_t * (
                             0.5 * us[sample_i, edge_i, i, t] ** 2
-                            + rhos[sample_i, edge_i, i, t] * us[sample_i, edge_i, i, t]
+                            + rhos[sample_i, edge_i, i, t]
                             - us[sample_i, edge_i, i, t]
                             + self.c[edge_i]
                         )
