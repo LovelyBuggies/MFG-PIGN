@@ -2,7 +2,11 @@ import numpy as np
 import torch
 
 from src.braess.braess_model import PIGN_rho, PIGN_V
-from src.braess.braess_loss import supervised_loss, transition_loss_rho
+from src.braess.braess_loss import (
+    supervised_loss,
+    transition_loss_rho,
+    transition_loss_V,
+)
 from src.utils import plot_4d
 
 
@@ -57,13 +61,13 @@ def run_rho(
             torch.from_numpy(braess_loader.rhos),
             loss_kwargs,
         )
-        # tran_loss = transition_loss_rho(
-        #     preds,
-        #     all_trans,
-        #     braess_loader.init_rhos,
-        #     loss_kwargs,
-        # )
-        loss = sup_loss
+        tran_loss = transition_loss_rho(
+            preds,
+            all_trans,
+            braess_loader.init_rhos,
+            loss_kwargs,
+        )
+        loss = tran_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -126,13 +130,13 @@ def run_V(
             torch.from_numpy(braess_loader.Vs),
             loss_kwargs,
         )
-        # tran_loss = transition_loss_rho(
-        #     preds,
-        #     all_trans,
-        #     braess_loader.init_rhos,
-        #     loss_kwargs,
-        # )
-        loss = sup_loss
+        tran_loss = transition_loss_V(
+            preds,
+            all_trans,
+            braess_loader.terminal_Vs,
+            loss_kwargs,
+        )
+        loss = tran_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
