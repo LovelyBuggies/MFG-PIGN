@@ -49,7 +49,7 @@ def transition_loss_V(preds, all_trans, V_terminals, loss_kwargs):
             for t in range(T - 1, -1, -1):
                 pred_t = torch.matmul(
                     torch.from_numpy(all_trans[sample_i][edge_i, :, :, t]),
-                    preds[sample_i, edge_i, :, t - 1],
+                    preds[sample_i, edge_i, :, t + 1],
                 )
                 loss_physics += loss_func(pred_t, preds[sample_i, edge_i, :, t])
 

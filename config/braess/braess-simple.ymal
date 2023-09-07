@@ -23,7 +23,7 @@ model:
     input_dim: 16
     output_dim: 1
     hidden_num: 5
-    fc_dim: 32
+    fc_dim: 128
     activation_type: "none"
     last_activation_type: "none"
 

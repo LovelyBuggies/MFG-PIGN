@@ -50,34 +50,33 @@ if __name__ == "__main__":
         pi = scipy.io.loadmat(mat_file_path)["pis"].astype(np.float32)
         braess_loader = BraessLoader(rho, u, V, beta, pi)
 
-        # all_trans, all_cum_trans = braess_loader.get_trans_matrix_rho(u, rho, beta)
-        # all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, 0)
-        #
-        # rho_message = np.repeat(
-        #     (braess_loader.init_rhos[:, :, :-1, None]), braess_loader.T, axis=-1
-        # )
-        # for shuo in range(10):
-        #     print(f"-------------------{shuo}-------------")
-        #     rho_message, rho_loss = run_rho(
-        #         braess_loader, u, rho_message, beta, f_args, config
-        #     )
-        #     plot_4d(
-        #         braess_loader.N,
-        #         int(braess_loader.T / braess_loader.N),
-        #         rho_message[0],
-        #         (0, 4, 3),
-        #         "pred",
-        #     )
+        all_trans, all_cum_trans = braess_loader.get_trans_matrix_rho(u, rho, beta)
+        all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, 0)
+        rho_message = np.repeat(
+            (braess_loader.init_rhos[:, :, :-1, None]), braess_loader.T, axis=-1
+        )
+        for shuo in range(5):
+            print(f"-------------------{shuo}-------------")
+            rho_message, rho_loss = run_rho(
+                braess_loader, u, rho_message, beta, f_args, config
+            )
+            plot_4d(
+                braess_loader.N,
+                int(braess_loader.T / braess_loader.N),
+                rho_message[0],
+                (0, 4, 3),
+                "pred",
+            )
 
-        # all_trans, all_cum_trans = braess_loader.get_trans_matrix_V(u, rho, pi)
-        # all_trans_tester_V(braess_loader, all_trans, all_cum_trans, 0)
+        all_trans, all_cum_trans = braess_loader.get_trans_matrix_V(u, rho, pi)
+        all_trans_tester_V(braess_loader, all_trans, all_cum_trans, 0)
         V_message = np.repeat(
             (braess_loader.terminal_Vs[:, :, :, None]), braess_loader.T + 1, axis=-1
         )
-        # V_message = braess_loader.Vs
-        for shuo in range(10):
+        for shuo in range(5):
             print(f"-------------------{shuo}-------------")
-            V_message, V_loss = run_V(braess_loader, u, rho, pi, f_args, config)
+            u_message = braess_loader.get_u_from_rho_V_pi(rho, V_message, pi)
+            V_message, V_loss = run_V(braess_loader, u_message, rho, pi, f_args, config)
             plot_4d(
                 braess_loader.N,
                 int(braess_loader.T / braess_loader.N),

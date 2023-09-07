@@ -138,3 +138,37 @@ class BraessLoader:
             all_cum_trans.append(cum_trans)
 
         return all_trans, all_cum_trans
+
+    def get_u_from_rho_V_pi(self, rhos, Vs, pis):
+        n_samples, N_edges, N, T = rhos.shape
+        delta_x, delta_t = 1 / N, 1 / N
+        us = np.zeros(rhos.shape, dtype=np.float32)
+        for sample_i in range(n_samples):
+            for edge_i in range(N_edges):
+                for t in range(T):
+                    for i in range(N):
+                        if i < N - 1:
+                            u_tmp = (
+                                (
+                                    Vs[sample_i, edge_i, i, t + 1]
+                                    - Vs[sample_i, edge_i, i + 1, t + 1]
+                                )
+                                / delta_t
+                                + 1
+                                - rhos[sample_i, edge_i, i, t]
+                            )
+                        elif i == N - 1:
+                            end_node = self.edges[edge_i, 1]
+                            u_tmp = (
+                                (
+                                    Vs[sample_i, edge_i, i, t + 1]
+                                    - pis[sample_i, end_node, t + 1]
+                                )
+                                / delta_t
+                                + 1
+                                - rhos[sample_i, edge_i, i, t]
+                            )
+
+                        us[sample_i, edge_i, i, t] = min(max(0, u_tmp), 1)
+
+        return us
