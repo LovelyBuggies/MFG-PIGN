@@ -138,16 +138,12 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
     # rho_preds = rho_labels
     # V_preds = V_labels
     epoch = config["train"]["epochs"]
-    u_hist, rho_hist = list(), list()
+    u_hist = list()
     best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
     for ep in range(epoch):
         u_message = ring_loader.get_u_from_rho_V(rho_preds, V_preds)
         u_hist.append(u_message)
         u_message = np.array(u_hist).mean(axis=0)
-        # u_message = ring_loader.us
-        rho_message = rho_preds
-        # rho_hist.append(rho_message)
-        # rho_message = np.array(rho_hist).mean(axis=0)
 
         rho_preds, rho_loss = run_rho(
             ring_loader,
@@ -158,7 +154,7 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
         V_preds, V_loss = run_V(
             ring_loader,
             u_message,
-            rho_message,
+            rho_preds,
             args,
             config,
         )

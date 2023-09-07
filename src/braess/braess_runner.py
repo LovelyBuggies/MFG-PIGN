@@ -80,7 +80,8 @@ def run_rho(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print(f"It {it}: loss {float(sup_loss)}")
+        if it % 100 == 0:
+            print(f"It {it}: loss {float(sup_loss)}")
         if float(sup_loss) < 1e-6:
             break
 
@@ -158,7 +159,8 @@ def run_V(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print(f"It {it}: loss {float(sup_loss)}")
+        if it % 100 == 0:
+            print(f"It {it}: loss {float(sup_loss)}")
         if float(sup_loss) < 1e-6:
             break
 
