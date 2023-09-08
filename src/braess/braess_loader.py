@@ -1,9 +1,8 @@
 import numpy as np
-from src.utils import plot_4d
 
 
 class BraessLoader:
-    def __init__(self, rhos, us, Vs, betas, pis):
+    def __init__(self, rhos, us, Vs, betas, pis, demands, terminals):
         super().__init__()
         self.N_nodes, self.N_edges = 4, 5
         self.origins, self.destinations = [0], [3]
@@ -20,7 +19,6 @@ class BraessLoader:
         self.edges[4, 0] = 1
         self.edges[4, 1] = 2
 
-        self.terminals = np.array([4, 2.7, 1.4, 0], dtype=np.float32)
         self.c = np.zeros((5, 1))
         self.c[0] = 1
         self.c[1] = 1.5
@@ -29,11 +27,10 @@ class BraessLoader:
         self.c[4] = 1
 
         self.rhos, self.us, self.Vs = rhos, us, Vs
+        self.demands, self.terminals = demands, terminals
         self.betas, self.pis = betas, pis
         self.n_samples, _, self.N, self.T = rhos.shape
         self.delta_x, self.delta_t = 1 / self.N, 1 / self.N
-        self.demands = np.zeros((1, self.T), dtype=np.float32)
-        self.demands[:, 0] = 0.8
 
         self.init_rhos = np.concatenate(
             (rhos[:, :, :, 0], np.ones((self.n_samples, self.N_edges, 1))),
@@ -61,7 +58,7 @@ class BraessLoader:
                         demand_idx = self.origins.index(self.edges[edge_i, 0])
                         trans[edge_i, 0, -1, t] += (
                             (delta_t / delta_x)
-                            * self.demands[demand_idx, t - 1]
+                            * self.demands[sample_i, demand_idx, t - 1]
                             * betas[sample_i, edge_i, t - 1]
                         )
                     if node_i in self.edges[:, 1]:
@@ -194,7 +191,7 @@ class BraessLoader:
                     for min_k in min_link:
                         betas[sample_i, min_k, t] = 1 / len(min_link)
 
-                    pis[sample_i, node_i, -1] = self.terminals[node_i]
+                    pis[sample_i, node_i, -1] = self.terminals[sample_i, 0, node_i]
                     for k in out_link:
                         pis[sample_i, node_i, t] += (
                             betas[sample_i, k, t] * Vs[sample_i, k, 0, t]

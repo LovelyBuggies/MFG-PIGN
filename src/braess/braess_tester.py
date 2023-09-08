@@ -3,13 +3,6 @@ from src.utils import plot_4d
 
 
 def all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, check_id=0):
-    plot_4d(
-        braess_loader.N,
-        int(braess_loader.T / braess_loader.N),
-        braess_loader.rhos[check_id],
-        (0, 4, 3),
-        "label",
-    )
     rhos_1 = np.zeros(
         (
             braess_loader.n_samples,
@@ -66,13 +59,6 @@ def all_trans_tester_rho(braess_loader, all_trans, all_cum_trans, check_id=0):
 
 
 def all_trans_tester_V(braess_loader, all_trans, all_cum_trans, check_id=0):
-    plot_4d(
-        braess_loader.N,
-        int(braess_loader.T / braess_loader.N),
-        braess_loader.Vs[check_id, :, :, :-1],
-        (0, 4, 3),
-        "label",
-    )
     Vs_1 = np.zeros(
         (
             braess_loader.n_samples,

@@ -1,5 +1,5 @@
 data:
-  file_path: "data/braess/braess-simple.mat"
+  file_path: "data/braess/braess-config.mat"
   check_id: 0
 
 model:

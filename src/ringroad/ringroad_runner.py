@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import time
 
 from src.ringroad.ringroad_model import PIGN_rho, PIGN_V
 from src.ringroad.ringroad_loss import (
@@ -129,7 +130,7 @@ def run_V(
     return V_preds, float(sup_loss)
 
 
-def run_rho_V(ring_loader, args, config, check_id, show=True):
+def run_rho_V(ring_loader, args, config, check_id=0, show=True):
     rho_labels = ring_loader.rhos
     V_labels = ring_loader.Vs
     rho_preds = np.repeat(ring_loader.init_rhos[:, :, None], ring_loader.T, axis=-1)
@@ -141,6 +142,7 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
     u_hist = list()
     best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
     for ep in range(epoch):
+        start_time = time.time()
         u_message = ring_loader.get_u_from_rho_V(rho_preds, V_preds)
         u_hist.append(u_message)
         u_message = np.array(u_hist).mean(axis=0)
@@ -164,6 +166,7 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
             best_ep = ep
             best_loss = rho_loss
         print("*** Epoch=", ep, "rho loss=", rho_loss, ", V loss=", V_loss)
+        print(f"training time: {time.time() - start_time} seconds")
 
     if show:
         plot_3d(
