@@ -20,6 +20,7 @@ class BraessLoader:
         self.edges[4, 0] = 1
         self.edges[4, 1] = 2
 
+        self.terminals = np.array([4, 2.7, 1.4, 0], dtype=np.float32)
         self.c = np.zeros((5, 1))
         self.c[0] = 1
         self.c[1] = 1.5
@@ -172,3 +173,31 @@ class BraessLoader:
                         us[sample_i, edge_i, i, t] = min(max(0, u_tmp), 1)
 
         return us
+
+    def get_beta_pi_from_V(self, Vs):
+        betas = np.zeros((self.n_samples, self.N_edges, self.T + 1), dtype=np.float32)
+        pis = np.zeros((self.n_samples, self.N_nodes, self.T + 1), dtype=np.float32)
+        for sample_i in range(self.n_samples):
+            for node_i in range(self.N_nodes):
+                for t in range(self.T):
+                    out_link, min_link = list(), list()
+                    min_cost = 1e8
+                    for k in range(self.N_edges):
+                        if self.edges[k, 0] == node_i:
+                            out_link.append(k)
+                            if Vs[sample_i, k, 0, t] < min_cost:
+                                min_cost = Vs[sample_i, k, 0, t]
+                                min_link = [k]
+                            elif Vs[sample_i, k, 0, t] == min_cost:  # tolerance = 0
+                                min_link += [k]
+
+                    for min_k in min_link:
+                        betas[sample_i, min_k, t] = 1 / len(min_link)
+
+                    pis[sample_i, node_i, -1] = self.terminals[node_i]
+                    for k in out_link:
+                        pis[sample_i, node_i, t] += (
+                            betas[sample_i, k, t] * Vs[sample_i, k, 0, t]
+                        )
+
+        return betas, pis
