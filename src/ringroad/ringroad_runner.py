@@ -1,10 +1,14 @@
 import numpy as np
 import torch
+import time
 
-from src.model import PIGN_rho, PIGN_V
-from src.loss import supervised_loss, transition_loss_rho, transition_loss_V
-from src.test import all_trans_tester_rho, all_trans_tester_V
-from src.utils import plot_3d, get_u_from_rho_V
+from src.ringroad.ringroad_model import PIGN_rho, PIGN_V
+from src.ringroad.ringroad_loss import (
+    supervised_loss,
+    transition_loss_rho,
+    transition_loss_V,
+)
+from src.utils import plot_3d
 
 
 def run_rho(
@@ -39,7 +43,7 @@ def run_rho(
             messages[sample_i, t, :, :, 0] = all_cum_trans[sample_i][t]
 
     preds = None
-    for it in range(config["train"]["epochs"]):
+    for it in range(config["train"]["iterations"]):
         model_output = model(model_input, messages=messages)
         preds = torch.transpose(model_output, 2, 1)
         sup_loss = supervised_loss(
@@ -100,7 +104,7 @@ def run_V(
             messages[sample_i, t, :, :, 0] = all_cum_trans[sample_i][t]
 
     preds = None
-    for it in range(config["train"]["epochs"]):
+    for it in range(config["train"]["iterations"]):
         # forward input as (T, X)
         model_output = model(model_input, messages=messages)
         preds = torch.transpose(model_output, 2, 1)
@@ -126,7 +130,7 @@ def run_V(
     return V_preds, float(sup_loss)
 
 
-def run_rho_V(ring_loader, args, config, check_id, show=True):
+def run_rho_V(ring_loader, args, config, check_id=0, show=True):
     rho_labels = ring_loader.rhos
     V_labels = ring_loader.Vs
     rho_preds = np.repeat(ring_loader.init_rhos[:, :, None], ring_loader.T, axis=-1)
@@ -134,17 +138,14 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
     V_preds[:, -1, :] = V_preds[:, 0, :]
     # rho_preds = rho_labels
     # V_preds = V_labels
-    epoch = 50
-    u_hist, rho_hist = list(), list()
+    epoch = config["train"]["epochs"]
+    u_hist = list()
     best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
     for ep in range(epoch):
-        u_message = get_u_from_rho_V(rho_preds, V_preds)
+        start_time = time.time()
+        u_message = ring_loader.get_u_from_rho_V(rho_preds, V_preds)
         u_hist.append(u_message)
         u_message = np.array(u_hist).mean(axis=0)
-        # u_message = ring_loader.us
-        rho_message = rho_preds
-        # rho_hist.append(rho_message)
-        # rho_message = np.array(rho_hist).mean(axis=0)
 
         rho_preds, rho_loss = run_rho(
             ring_loader,
@@ -155,7 +156,7 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
         V_preds, V_loss = run_V(
             ring_loader,
             u_message,
-            rho_message,
+            rho_preds,
             args,
             config,
         )
@@ -165,6 +166,7 @@ def run_rho_V(ring_loader, args, config, check_id, show=True):
             best_ep = ep
             best_loss = rho_loss
         print("*** Epoch=", ep, "rho loss=", rho_loss, ", V loss=", V_loss)
+        print(f"training time: {time.time() - start_time} seconds")
 
     if show:
         plot_3d(

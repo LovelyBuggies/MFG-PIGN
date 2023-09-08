@@ -1,18 +1,73 @@
 import numpy as np
 import torch
+from torch import nn
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 
-def plot_3d(n_x, n_t, matrx, ax_name, fig_name=None):
+def instantiate_activation_function(function_name):
+    function_dict = {
+        "leaky_relu": nn.LeakyReLU(),
+        "tanh": nn.Tanh(),
+        "sigmoid": nn.Sigmoid(),
+        "relu": nn.ReLU(),
+        "none": None,
+    }
+    return function_dict[function_name]
+
+
+def get_fully_connected_layer(
+    input_dim,
+    output_dim,
+    n_hidden,
+    hidden_dim,
+    activation_type="leaky_relu",
+    last_activation_type="tanh",
+    device=None,
+):
+    modules = [
+        nn.Linear(input_dim, hidden_dim, device=device),
+    ]
+    activation = instantiate_activation_function(activation_type)
+    if activation is not None:
+        modules.append(activation)
+
+    if n_hidden > 1:
+        for l in range(n_hidden - 1):
+            modules.append(nn.Linear(hidden_dim, hidden_dim, device=device))
+            activation = instantiate_activation_function(activation_type)
+            if activation is not None:
+                modules.append(activation)
+
+    modules.append(nn.Linear(hidden_dim, output_dim, device=device))
+    last_activation = instantiate_activation_function(last_activation_type)
+    if last_activation_type == "none":
+        pass
+    else:
+        modules.append(last_activation)
+
+    return nn.Sequential(*modules)
+
+
+class MLP(nn.Module):
+    def __init__(self, nn_args, nn_kwargs):
+        super().__init__()
+        self.model = get_fully_connected_layer(*nn_args, **nn_kwargs)
+        self.device = nn_kwargs["device"]
+
+    def forward(self, x):
+        return self.model(x)
+
+
+def plot_3d(n_x, n_t, matrix, ax_name, fig_name=None):
     fig = plt.figure(figsize=(8, 8))
     ax = fig.gca(projection="3d")
     x = np.linspace(0, 1, n_x)
     t = np.linspace(0, 1, n_t)
     t_mesh, x_mesh = np.meshgrid(t, x)
     surf = ax.plot_surface(
-        x_mesh, t_mesh, matrx, cmap=cm.jet, linewidth=0, antialiased=False
+        x_mesh, t_mesh, matrix, cmap=cm.jet, linewidth=0, antialiased=False
     )
     ax.grid(False)
     ax.tick_params(axis="both", which="major", labelsize=18, pad=10)
@@ -40,6 +95,29 @@ def plot_3d(n_x, n_t, matrx, ax_name, fig_name=None):
         plt.savefig(fig_name, bbox_inches="tight")
 
 
+def plot_4d(n_cell, T_terminal, matrix, concat, ax_name, fig_name=None):
+    matrix_new = matrix[concat[0], :, :]
+    for i in range(1, len(concat)):
+        matrix_new = np.append(matrix_new, matrix[concat[i], :, :], axis=0)
+
+    fig = plt.figure()
+    ax = fig.gca(projection="3d")
+    x = np.linspace(0, len(concat), len(concat) * n_cell)
+    t = np.linspace(0, T_terminal, n_cell * T_terminal)
+    t_mesh, x_mesh = np.meshgrid(t, x)
+    surf = ax.plot_surface(
+        x_mesh, t_mesh, matrix_new, cmap=cm.jet, linewidth=0, antialiased=False
+    )
+    ax.set_zlabel(ax_name, fontsize=24, labelpad=20, rotation=90)
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+    plt.xlim(max(x), min(x))
+    if not fig_name:
+        plt.show()
+    else:
+        plt.savefig(fig_name)
+
+
 def get_args_kwargs(f_config):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     f_args = (
@@ -57,19 +135,3 @@ def get_args_kwargs(f_config):
         raise ValueError("Cannot have 'hidden_num' < 2")
 
     return f_args, f_kwargs
-
-
-def get_u_from_rho_V(rhos, Vs):
-    n_samples, N, T = rhos.shape
-    delta_x, delta_t = 1 / N, 1 / T
-    us = np.zeros((n_samples, N, T), dtype=np.float32)
-    for sample_i in range(n_samples):
-        for t in range(T):
-            for i in range(N):
-                us[sample_i, i, t] = (
-                    (Vs[sample_i, i, t + 1] - Vs[sample_i, i + 1, t + 1]) / delta_t
-                    + 1
-                    - rhos[sample_i, i, t]
-                )
-
-    return us
