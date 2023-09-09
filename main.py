@@ -7,7 +7,7 @@ from src.utils import get_args_kwargs
 
 
 if __name__ == "__main__":
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     parser = ArgumentParser(description="Basic parser")
     parser.add_argument("--network", type=str, help="The traffic network")
     parser.add_argument(

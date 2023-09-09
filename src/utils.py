@@ -119,7 +119,7 @@ def plot_4d(n_cell, T_terminal, matrix, concat, ax_name, fig_name=None):
 
 
 def get_args_kwargs(f_config):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     f_args = (
         f_config["input_dim"],
         f_config["output_dim"],

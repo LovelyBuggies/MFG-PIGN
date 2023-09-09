@@ -183,7 +183,7 @@ def run_rho_V(
     best_rho, best_V, best_loss, best_ep = None, None, 1e8, 0
     for ep in range(config["train"]["epochs"]):
         print(f"-------------------{ep}-------------")
-        start_time = time.times()
+        start_time = time.time()
         beta_message, pi_message = braess_loader.get_beta_pi_from_V(V_preds)
         beta_hist.append(beta_message)
         beta_message = np.array(beta_hist).mean(axis=0)
@@ -202,6 +202,7 @@ def run_rho_V(
             best_V = V_preds
             best_ep = ep
             best_loss = rho_loss
+
         print("*** Epoch=", ep, "rho loss=", rho_loss, ", V loss=", V_loss)
         print(f"training time: {time.time() - start_time} seconds")
 
