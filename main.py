@@ -43,11 +43,13 @@ if __name__ == "__main__":
 
     elif args.network == "braess":
         from src.braess.braess_loader import BraessLoader
-        from src.braess.braess_runner import run_rho_V
+        from src.braess.braess_runner import run_rho_V, run_V, run_rho
 
         beta = scipy.io.loadmat(mat_file_path)["betas"].astype(np.float32)
         pi = scipy.io.loadmat(mat_file_path)["pis"].astype(np.float32)
         demand = scipy.io.loadmat(mat_file_path)["demands"].astype(np.float32)
         terminal = scipy.io.loadmat(mat_file_path)["terminals"].astype(np.float32)
         braess_loader = BraessLoader(rho, u, V, beta, pi, demand, terminal)
-        run_rho_V(braess_loader, f_args, config, check_id=check_id, show=True)
+        # run_rho_V(braess_loader, f_args, config, check_id=check_id, show=True)
+        # run_rho(braess_loader, u, rho, beta, f_args, config)
+        run_V(braess_loader, u, rho, pi, f_args, config)

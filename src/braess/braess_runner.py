@@ -34,38 +34,31 @@ def run_rho(
         u_message, rho_message, beta_message
     )
     init_rho_copies = np.repeat(
-        (braess_loader.init_rhos.reshape(braess_loader.n_samples, -1)[:, :, None]),
+        (braess_loader.init_rhos[:, :, :, None]),
         braess_loader.T,
         axis=-1,
     )
-    model_input = np.transpose(init_rho_copies, (0, 2, 1))
-    l_trans = braess_loader.N + 1
-    l_large_trans = l_trans * braess_loader.N_edges
+    model_input = np.transpose(init_rho_copies, (0, 1, 3, 2))
     messages = np.zeros(
         (
             braess_loader.n_samples,
+            braess_loader.N_edges,
             braess_loader.T,
-            l_large_trans,
-            l_large_trans,
+            braess_loader.N + 1,
+            braess_loader.N + 1,
             1,
         ),
         dtype=np.float32,
     )
     for sample_i in range(braess_loader.n_samples):
-        for t in range(braess_loader.T):
-            for i in range(l_large_trans):
-                edge_i = int(i / l_trans)
-                for j in range(edge_i * l_trans, (edge_i + 1) * l_trans):
-                    messages[sample_i, t, i, j, 0] = all_cum_trans[sample_i][
-                        edge_i, i % l_trans, j % l_trans, t
-                    ]
+        messages[sample_i, :, :, :, :, 0] = np.transpose(
+            all_cum_trans[sample_i], (0, 3, 1, 2)
+        )
 
     preds = None
     for it in range(config["train"]["iterations"]):
         model_output = model(model_input, messages=messages)
-        preds = torch.transpose(model_output, 2, 1).reshape(
-            braess_loader.n_samples, braess_loader.N_edges, l_trans, braess_loader.T
-        )
+        preds = torch.transpose(model_output, 3, 2)
         sup_loss = supervised_loss(
             preds[:, :, :-1, :],
             torch.from_numpy(braess_loader.rhos),
@@ -111,38 +104,31 @@ def run_V(
         u_message, rho_message, pi_message
     )
     terminal_V_copies = np.repeat(
-        (braess_loader.terminal_Vs.reshape(braess_loader.n_samples, -1)[:, :, None]),
+        (braess_loader.terminal_Vs[:, :, :, None]),
         braess_loader.T + 1,
         axis=-1,
     )
-    model_input = np.transpose(terminal_V_copies, (0, 2, 1))
-    l_trans = braess_loader.N + 2
-    l_large_trans = l_trans * braess_loader.N_edges
+    model_input = np.transpose(terminal_V_copies, (0, 1, 3, 2))
     messages = np.zeros(
         (
             braess_loader.n_samples,
+            braess_loader.N_edges,
             braess_loader.T + 1,
-            l_large_trans,
-            l_large_trans,
+            braess_loader.N + 2,
+            braess_loader.N + 2,
             1,
         ),
         dtype=np.float32,
     )
     for sample_i in range(braess_loader.n_samples):
-        for t in range(braess_loader.T + 1):
-            for i in range(l_large_trans):
-                edge_i = int(i / l_trans)
-                for j in range(edge_i * l_trans, (edge_i + 1) * l_trans):
-                    messages[sample_i, t, i, j, 0] = all_cum_trans[sample_i][
-                        edge_i, i % l_trans, j % l_trans, t
-                    ]
+        messages[sample_i, :, :, :, :, 0] = np.transpose(
+            all_cum_trans[sample_i], (0, 3, 1, 2)
+        )
 
     preds = None
     for it in range(config["train"]["iterations"]):
         model_output = model(model_input, messages=messages)
-        preds = torch.transpose(model_output, 2, 1).reshape(
-            braess_loader.n_samples, braess_loader.N_edges, l_trans, braess_loader.T + 1
-        )
+        preds = torch.transpose(model_output, 3, 2)
         sup_loss = supervised_loss(
             preds[:, :, :-2, :],
             torch.from_numpy(braess_loader.Vs),
@@ -154,7 +140,7 @@ def run_V(
             braess_loader.terminal_Vs,
             loss_kwargs,
         )
-        loss = tran_loss
+        loss = sup_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
