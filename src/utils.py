@@ -101,7 +101,7 @@ def plot_4d(n_cell, T_terminal, matrix, concat, ax_name, fig_name=None):
         matrix_new = np.append(matrix_new, matrix[concat[i], :, :], axis=0)
 
     fig = plt.figure()
-    ax = fig.gca(projection="3d")
+    ax = fig.add_subplot(projection="3d")
     x = np.linspace(0, len(concat), len(concat) * n_cell)
     t = np.linspace(0, T_terminal, n_cell * T_terminal)
     t_mesh, x_mesh = np.meshgrid(t, x)

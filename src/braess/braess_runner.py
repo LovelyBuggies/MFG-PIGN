@@ -190,6 +190,50 @@ def run_rho_V(
         u_message = braess_loader.get_u_from_rho_V_pi(rho_preds, V_preds, pi_message)
         u_hist.append(u_message)
         u_message = np.array(u_hist).mean(axis=0)
+        with open(f"result/braess/rho-preds-{ep}.npy", "wb") as f_rho:
+            np.save(f_rho, rho_preds)
+        with open(f"result/braess/u-preds-{ep}.npy", "wb") as f_u:
+            np.save(f_u, u_message)
+        with open(f"result/braess/V-preds-{ep}.npy", "wb") as f_V:
+            np.save(f_V, V_preds)
+        with open(f"result/braess/beta-preds-{ep}.npy", "wb") as f_beta:
+            np.save(f_beta, beta_message)
+        with open(f"result/braess/pi-preds-{ep}.npy", "wb") as f_pi:
+            np.save(f_pi, pi_message)
+
+        if show:
+            plot_4d(
+                braess_loader.N,
+                int(braess_loader.T / braess_loader.N),
+                rho_preds[check_id],
+                (0, 4, 3),
+                f"pred-rho-043",
+                f"./result/braess/pred-rho-043-{check_id}-ep{ep}.pdf",
+            )
+            plot_4d(
+                braess_loader.N,
+                int(braess_loader.T / braess_loader.N),
+                V_preds[check_id, :, :, :-1],
+                (0, 4, 3),
+                f"pred-V-043",
+                f"./result/braess/pred-V-043-{check_id}-ep{ep}.pdf",
+            )
+            plot_4d(
+                braess_loader.N,
+                int(braess_loader.T / braess_loader.N),
+                rho_preds[check_id],
+                (1, 3),
+                f"pred-rho-13",
+                f"./result/braess/pred-rho-13-{check_id}-ep{ep}.pdf",
+            )
+            plot_4d(
+                braess_loader.N,
+                int(braess_loader.T / braess_loader.N),
+                V_preds[check_id, :, :, :-1],
+                (1, 3),
+                f"pred-V-13",
+                f"./result/braess/pred-V-13-{check_id}-ep{ep}.pdf",
+            )
 
         rho_preds, rho_loss = run_rho(
             braess_loader, u_message, rho_preds, beta_message, f_args, config
@@ -205,36 +249,6 @@ def run_rho_V(
 
         print("*** Epoch=", ep, "rho loss=", rho_loss, ", V loss=", V_loss)
         print(f"training time: {time.time() - start_time} seconds")
-
-        if show:
-            plot_4d(
-                braess_loader.N,
-                int(braess_loader.T / braess_loader.N),
-                rho_preds[check_id],
-                (0, 4, 3),
-                f"pred-rho-043-{check_id}-ep{ep}",
-            )
-            plot_4d(
-                braess_loader.N,
-                int(braess_loader.T / braess_loader.N),
-                V_preds[check_id, :, :, :-1],
-                (0, 4, 3),
-                f"pred-V-043-{check_id}-ep{ep}",
-            )
-            plot_4d(
-                braess_loader.N,
-                int(braess_loader.T / braess_loader.N),
-                rho_preds[check_id],
-                (1, 3),
-                f"pred-rho-13-{check_id}-ep{ep}",
-            )
-            plot_4d(
-                braess_loader.N,
-                int(braess_loader.T / braess_loader.N),
-                V_preds[check_id, :, :, :-1],
-                (1, 3),
-                f"pred-V-13-{check_id}-ep{ep}",
-            )
 
     plot_4d(
         braess_loader.N,
