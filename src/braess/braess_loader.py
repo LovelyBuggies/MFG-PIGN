@@ -19,13 +19,7 @@ class BraessLoader:
         self.edges[4, 0] = 1
         self.edges[4, 1] = 2
 
-        self.c = np.zeros((5, 1))
-        self.c[0] = 1
-        self.c[1] = 1.5
-        self.c[2] = 1.5
-        self.c[3] = 1
-        self.c[4] = 1
-
+        self.c = np.ones((5, 1))
         self.rhos, self.us, self.Vs = rhos, us, Vs
         self.demands, self.terminals = demands, terminals
         self.betas, self.pis = betas, pis
@@ -193,7 +187,7 @@ class BraessLoader:
 
                     pis[sample_i, node_i, -1] = self.terminals[sample_i, 0, node_i]
                     for k in out_link:
-                        pis[sample_i, node_i, t] += (
+                        pis[sample_i, node_i, t + 1] += (
                             betas[sample_i, k, t] * Vs[sample_i, k, 0, t]
                         )
 
