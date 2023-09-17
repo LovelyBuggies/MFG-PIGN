@@ -28,7 +28,7 @@ model:
     last_activation_type: "none"
 
 train:
-  epochs: 50
+  epochs: 200
   iterations: 500
   lr: 0.001
   w_ic: 0.6
